@@ -21,19 +21,17 @@ const fileToBase64 = (file) => new Promise((resolve, reject) => {
 
 // --- SÜRÜKLƏ-BURAX VƏ FAYL SEÇMƏ MƏNTİQİ ---
 
-// Drop zonasına kliklədikdə gizli file input-u aktivləşdirir
-dropZone.addEventListener("click", (e) => {
+// Təkmilləşdirilmiş hadisə idarəetməsi
+dropZone.addEventListener("click", () => {
   fileInput.click();
 });
 
-// Fayl inputu vasitəsilə fayl seçildikdə
-fileInput.addEventListener("change", (e) => {
+fileInput.addEventListener("change", () => {
   if (fileInput.files.length) {
     updateThumbnail(dropZone, fileInput.files[0]);
   }
 });
 
-// Sürükləmə hadisələri
 ["dragover", "dragleave", "dragend"].forEach((type) => {
   dropZone.addEventListener(type, (e) => {
     e.preventDefault();
@@ -45,19 +43,15 @@ fileInput.addEventListener("change", (e) => {
   });
 });
 
-// Fayl drop zonasına buraxıldıqda
 dropZone.addEventListener("drop", (e) => {
   e.preventDefault();
   dropZone.classList.remove("drop-zone--over");
 
   if (e.dataTransfer.files.length) {
-    // Sürüklənən fayllardan yalnız birincisini götürür
     const file = e.dataTransfer.files[0];
-    
-    // Fayl növünü yoxlayır (yalnız PDF, PNG, JPG)
     const allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
     if (allowedTypes.includes(file.type)) {
-      fileInput.files = e.dataTransfer.files; // Gizli inputu yeniləyir (opsional)
+      fileInput.files = e.dataTransfer.files; 
       updateThumbnail(dropZone, file);
     } else {
       alert("Xəta: Yalnız PDF, PNG və JPG faylları qəbul edilir.");
@@ -96,7 +90,7 @@ function updateThumbnail(dropZoneElement, file) {
       thumbnailElement.style.backgroundImage = `url('${reader.result}')`;
     };
   } else {
-    // Şəkil olmayan fayllar üçün (məs. PDF) ikon və ya standart fon
+    // PDF və digər şəkil olmayan fayllar üçün ikon
     thumbnailElement.style.backgroundImage = null;
     thumbnailElement.innerHTML = '<div style="font-size: 50px;">📄</div>'; // PDF ikonu
   }
@@ -135,7 +129,6 @@ generateBtn.addEventListener("click", async () => {
     }
 
     let textResponse = data.text;
-    // JSON təmizlənməsi
     textResponse = textResponse.replace(/```json/g, "").replace(/```/g, "").trim();
     generatedQuiz = JSON.parse(textResponse);
 
