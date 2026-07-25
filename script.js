@@ -69,7 +69,6 @@ function updateThumbnail(dropZoneElement, file) {
     thumb = document.createElement("div");
     thumb.className = "drop-zone__thumb";
     
-    // Yalnız thumbnail-ə kliklədikdə önizləmə açılır
     thumb.addEventListener("click", (e) => {
       e.stopPropagation();
       openPreviewModal(file);
@@ -78,8 +77,21 @@ function updateThumbnail(dropZoneElement, file) {
     dropZoneElement.appendChild(thumb);
   }
   
-  thumb.dataset.label = file.name;
-  selectedFile = file;
+  // Fayl adındakı boşluqları və Azərbaycan simvollarını təmizləyirik
+  let cleanName = file.name
+    .replace(/ə/g, "e").replace(/Ə/g, "E")
+    .replace(/ü/g, "u").replace(/Ü/g, "U")
+    .replace(/ş/g, "s").replace(/Ş/g, "S")
+    .replace(/ö/g, "o").replace(/Ö/g, "O")
+    .replace(/ı/g, "i").replace(/İ/g, "I")
+    .replace(/ç/g, "c").replace(/Ç/g, "C")
+    .replace(/ğ/g, "g").replace(/Ğ/g, "G")
+    .replace(/\s+/g, "_"); // Boşluqları alt xəttə çeviririk
+
+  const sanitizedFile = new File([file], cleanName, { type: file.type });
+  selectedFile = sanitizedFile;
+  
+  thumb.dataset.label = cleanName;
   
   if (file.type.startsWith("image/")) {
     const reader = new FileReader();
