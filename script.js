@@ -1,16 +1,17 @@
+// 🔑 BURAYA MÜTLƏQ ÖZ GEMINI API AÇARINIZI DAXİL EDİN
+const GEMINI_API_KEY = "BURAYA_API_AÇARINIZI_YAZIN";
+
 let generatedQuiz = [];
 let userAnswers = {};
 
 const generateBtn = document.getElementById("generateBtn");
 const submitBtn = document.getElementById("submitBtn");
 const fileInput = document.getElementById("fileInput");
-const apiKeyInput = document.getElementById("apiKey");
 const loading = document.getElementById("loading");
 const quizContainer = document.getElementById("quizContainer");
 const questionsDiv = document.getElementById("questions");
 const resultDiv = document.getElementById("result");
 
-// Faylı Base64 formatına çevirən funksiya
 const fileToBase64 = (file) => new Promise((resolve, reject) => {
   const reader = new FileReader();
   reader.readAsDataURL(file);
@@ -18,12 +19,9 @@ const fileToBase64 = (file) => new Promise((resolve, reject) => {
   reader.onerror = (error) => reject(error);
 });
 
-// Gemini API-yə Sorğu Göndərilməsi
 generateBtn.addEventListener("click", async () => {
-  const apiKey = apiKeyInput.value.trim();
   const file = fileInput.files[0];
 
-  if (!apiKey) return alert("Zəhmət olmasa Gemini API açarını daxil edin!");
   if (!file) return alert("Zəhmət olmasa bir fayl seçin!");
 
   loading.classList.remove("hidden");
@@ -47,7 +45,7 @@ generateBtn.addEventListener("click", async () => {
       }
     ]`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -63,7 +61,6 @@ generateBtn.addEventListener("click", async () => {
     const data = await response.json();
     let textResponse = data.candidates[0].content.parts[0].text;
     
-    // JSON təmizlənməsi
     textResponse = textResponse.replace(/```json/g, "").replace(/```/g, "").trim();
     generatedQuiz = JSON.parse(textResponse);
 
@@ -75,7 +72,6 @@ generateBtn.addEventListener("click", async () => {
   }
 });
 
-// Sualların Ekrana Çıxarılması
 function renderQuiz(quiz) {
   quizContainer.classList.remove("hidden");
   questionsDiv.innerHTML = "";
@@ -97,7 +93,6 @@ function renderQuiz(quiz) {
   });
 }
 
-// Variantın Seçilməsi
 function selectOption(qIndex, optIndex, btn) {
   userAnswers[qIndex] = optIndex;
   const parent = btn.parentElement;
@@ -106,7 +101,6 @@ function selectOption(qIndex, optIndex, btn) {
   btn.classList.add("selected");
 }
 
-// Nəticənin Hesablanması
 submitBtn.addEventListener("click", () => {
   let score = 0;
   const qBoxes = questionsDiv.querySelectorAll(".question-box");
