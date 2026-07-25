@@ -1,10 +1,14 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Yalnız POST sorğuları dəstəklənir' });
   }
 
   try {
-    const { base64Data, mimeType, pages, questions } = req.body;
+    const { base64Data, mimeType, pages, questions, fileName } = req.body;
 
     if (!base64Data || !mimeType) {
       return res.status(400).json({ error: 'Fayl məlumatı çatışmır' });
@@ -63,7 +67,6 @@ QEYD: "correctAnswer" doğru cavabın 0-dan başlayan indeksidir (0=A, 1=B, 2=C,
     const data = await apiResponse.json();
 
     if (!apiResponse.ok) {
-      console.error("Gemini API Xətası:", data);
       const errorMessage = data.error?.message || 'Gemini API cavab vermədi.';
       return res.status(apiResponse.status).json({ error: errorMessage });
     }
@@ -74,10 +77,8 @@ QEYD: "correctAnswer" doğru cavabın 0-dan başlayan indeksidir (0=A, 1=B, 2=C,
       return res.status(500).json({ error: 'Gemini-dən cavab alınmadı.' });
     }
 
-    // Markdown bloklarını təmizləyirik
     generatedText = generatedText.replace(/```json/g, '').replace(/```/g, '').trim();
     
-    // JSON massivini tapırıq
     const firstBracket = generatedText.indexOf('[');
     const lastBracket = generatedText.lastIndexOf(']');
     
@@ -85,17 +86,25 @@ QEYD: "correctAnswer" doğru cavabın 0-dan başlayan indeksidir (0=A, 1=B, 2=C,
       generatedText = generatedText.substring(firstBracket, lastBracket + 1);
     }
 
-    try {
-      JSON.parse(generatedText);
-    } catch (parseError) {
-      console.error("JSON Parse Xətası:", generatedText);
-      return res.status(500).json({ error: 'AI tərəfindən qeyri-düzgün JSON formatı qaytarıldı. Zəhmət olmasa yenidən sınayın.' });
+    const parsedJson = JSON.parse(generatedText);
+
+    // Testi Supabase bazasına qeyd edirik
+    const { error: dbError } = await supabase
+      .from('quizzes')
+      .insert([
+        { 
+          title: fileName || "Adsız Test", 
+          questions_data: parsedJson 
+        }
+      ]);
+
+    if (dbError) {
+      console.error("Supabase yazılma xətası:", dbError);
     }
 
     return res.status(200).json({ text: generatedText });
 
   } catch (err) {
-    console.error("Server Xətası:", err);
     return res.status(500).json({ error: 'Daxili server xətası: ' + err.message });
   }
 }
