@@ -63,11 +63,6 @@ QEYD: "correctAnswer" doğru cavabın 0-dan başlayan indeksidir (0=A, 1=B, 2=C,
     if (!apiResponse.ok) {
       console.error("Gemini API Xətası:", data);
       const errorMessage = data.error?.message || 'Gemini API cavab vermədi.';
-      
-      if (apiResponse.status === 429) {
-        return res.status(429).json({ error: 'Çox sayda sorğu göndərildi (Limit aşımı). Zəhmət olmasa 1-2 dəqiqə gözləyin.' });
-      }
-
       return res.status(apiResponse.status).json({ error: errorMessage });
     }
 
@@ -77,8 +72,10 @@ QEYD: "correctAnswer" doğru cavabın 0-dan başlayan indeksidir (0=A, 1=B, 2=C,
       return res.status(500).json({ error: 'Gemini-dən cavab alınmadı.' });
     }
 
-    // Əgər cavab blok içində gələrsə təmizləyirik
     generatedText = generatedText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+    // JSON formatının düzgünlüyünü yoxlayırıq
+    JSON.parse(generatedText);
 
     return res.status(200).json({ text: generatedText });
 
