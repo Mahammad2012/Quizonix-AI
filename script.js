@@ -1,6 +1,3 @@
-// 🔑 BURAYA MÜTLƏQ ÖZ GEMINI API AÇARINIZI DAXİL EDİN
-const GEMINI_API_KEY = "";
-
 let generatedQuiz = [];
 let userAnswers = {};
 
@@ -34,33 +31,23 @@ generateBtn.addEventListener("click", async () => {
     const base64Data = await fileToBase64(file);
     const mimeType = file.type || "image/png";
 
-    const promptText = `Aşağıdakı faylı təhlil et və onun məzmununa uyğun 3 ədəd çoxseçimli sual yarat. 
-    CAVABI MÜTLƏQ YALNIZ aşağıdakı JSON formatında ver, başqa heç bir söz və ya markdown yazma:
-    [
-      {
-        "id": 0,
-        "question": "Sual mətni",
-        "options": ["A variantı", "B variantı", "C variantı", "D variantı"],
-        "correctAnswer": 0
-      }
-    ]`;
-
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+    // Birbaşa Gemini API-yə yox, öz yaradacağımız Vercel API-yə sorğu göndəririk:
+    const response = await fetch('/api/generate', {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: promptText },
-            { inlineData: { mimeType: mimeType, data: base64Data } }
-          ]
-        }]
+        base64Data: base64Data,
+        mimeType: mimeType
       })
     });
 
     const data = await response.json();
-    let textResponse = data.candidates[0].content.parts[0].text;
     
+    if (!response.ok) {
+      throw new Error(data.error || "Xəta baş verdi");
+    }
+
+    let textResponse = data.text;
     textResponse = textResponse.replace(/```json/g, "").replace(/```/g, "").trim();
     generatedQuiz = JSON.parse(textResponse);
 
