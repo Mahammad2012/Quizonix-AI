@@ -1,54 +1,98 @@
 * {
   box-sizing: border-box;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Segoe UI', Roboto, sans-serif;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  background-color: #f4f7f6;
+  background-color: #0f0c1b; /* Tünd qara-bənövşəyi fon */
+  color: #e2e8f0;
   display: flex;
   justify-content: center;
-  padding: 40px 20px;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
 }
 
 .container {
-  background: white;
-  padding: 30px;
-  border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  background: #18132b; /* Qutunun tünd bənövşəyi fonu */
+  padding: 35px;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(112, 0, 255, 0.2);
+  border: 1px solid #2d224d;
   max-width: 650px;
   width: 100%;
 }
 
 h1 {
   text-align: center;
-  color: #333;
+  color: #d6bbffb3;
+  color: #c084fc; /* Parlaq bənövşəyi başlaq */
+  margin-bottom: 25px;
+  font-size: 26px;
 }
 
 .upload-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 15px;
+  margin-bottom: 25px;
 }
 
-input[type="text"], input[type="file"], button {
-  padding: 12px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 16px;
+/* Xüsusi Input stilləri */
+input[type="text"], input[type="file"] {
+  padding: 14px;
+  background-color: #0f0c1b;
+  border: 1px solid #3b2d59;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+  transition: all 0.3s ease;
 }
 
-button {
-  background-color: #0070f3;
-  color: white;
+input[type="text"]:focus {
+  border-color: #a855f7;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+}
+
+input[type="file"]::file-selector-button {
+  background: #2a1f45;
+  color: #c084fc;
   border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
   cursor: pointer;
-  font-weight: bold;
+  margin-right: 10px;
   transition: 0.2s;
 }
 
+input[type="file"]::file-selector-button:hover {
+  background: #3b2d59;
+}
+
+/* Əsas Bənövşəyi Düymələr */
+button {
+  padding: 14px;
+  background: linear-gradient(135deg, #7e22ce, #9333ea);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, background 0.3s;
+}
+
 button:hover {
-  background-color: #0051a2;
+  background: linear-gradient(135deg, #6b21a8, #7e22ce);
+  box-shadow: 0 4px 15px rgba(147, 51, 234, 0.4);
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
 }
 
 .hidden {
@@ -58,44 +102,74 @@ button:hover {
 #loading {
   text-align: center;
   font-weight: bold;
-  color: #555;
+  color: #c084fc;
   margin: 20px 0;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
 }
 
 .question-box {
-  margin-bottom: 20px;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 15px;
+  margin-bottom: 25px;
+  background: #0f0c1b;
+  padding: 20px;
+  border-radius: 10px;
+  border: 1px solid #2d224d;
 }
 
+.question-box h3 {
+  color: #f3e8ff;
+  font-size: 18px;
+  margin-bottom: 15px;
+}
+
+/* Kviz Variant Düymələri */
 .option-btn {
   display: block;
   width: 100%;
   text-align: left;
-  margin: 6px 0;
-  background: #f8f9fa;
-  color: #333;
-  border: 1px solid #ddd;
+  margin: 8px 0;
+  background: #18132b;
+  color: #d8b4fe;
+  border: 1px solid #3b2d59;
+  border-radius: 8px;
+  padding: 12px;
+  font-weight: normal;
+}
+
+.option-btn:hover {
+  background: #251b42;
+  border-color: #a855f7;
 }
 
 .option-btn.selected {
-  background: #e2e8f0;
-  border-color: #0070f3;
+  background: #3b0764;
+  border-color: #c084fc;
+  color: #fff;
+  box-shadow: 0 0 8px rgba(192, 132, 252, 0.3);
 }
 
+/* Doğru və Səhv Cavab İndikatorları */
 .option-btn.correct {
-  background: #d4edda !important;
-  color: #155724;
+  background: #064e3b !important;
+  border-color: #10b981 !important;
+  color: #a7f3d0 !important;
 }
 
 .option-btn.wrong {
-  background: #f8d7da !important;
-  color: #721c24;
+  background: #7f1d1d !important;
+  border-color: #ef4444 !important;
+  color: #fecaca !important;
 }
 
 .result {
-  margin-top: 15px;
-  font-size: 18px;
+  margin-top: 20px;
+  font-size: 20px;
   font-weight: bold;
   text-align: center;
+  color: #a855f7;
 }
