@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     if (questions) promptText += `Yalnız bu sual nömrələrini analiz et: ${questions}. `;
 
     promptText += `
-Nəticəni DƏQİQ aşağıdakı JSON formatında qaytar. Başqa heç bir əlavə mətn, izahat və ya markdown işarəsi (məsələn ```json) yazma, birbaşa array ilə başla:
+Nəticəni DƏQİQ JSON formatında array şəklində qaytar. Başqa heç bir izahat yazma:
 [
   {
     "question": "Sualın mətni (LaTeX düsturlarını $düstur$ formatında yaz)",
@@ -50,7 +50,7 @@ QEYD: "correctAnswer" doğru cavabın 0-dan başlayan indeksidir (0=A, 1=B, 2=C,
       }
     };
 
-    const url = `[https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$](https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$){apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
     
     const apiResponse = await fetch(url, {
       method: 'POST',
@@ -72,7 +72,15 @@ QEYD: "correctAnswer" doğru cavabın 0-dan başlayan indeksidir (0=A, 1=B, 2=C,
       return res.status(500).json({ error: 'Gemini-dən cavab alınmadı.' });
     }
 
+    // Əgər cavabda əlavə mətnlər və ya markdown blokları varsa, təmizləyib yalnız JSON array-i tapırıq
     generatedText = generatedText.replace(/```json/g, '').replace(/```/g, '').trim();
+    
+    const firstBracket = generatedText.indexOf('[');
+    const lastBracket = generatedText.lastIndexOf(']');
+    
+    if (firstBracket !== -1 && lastBracket !== -1) {
+      generatedText = generatedText.substring(firstBracket, lastBracket + 1);
+    }
 
     // JSON formatının düzgünlüyünü yoxlayırıq
     JSON.parse(generatedText);
