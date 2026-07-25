@@ -3,30 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aquarius - AI Quiz Generator</title>
+  <title>Aquarius - AI Math Quiz Generator</title>
   
-  <!-- Favicon linkini bura əlavə edin -->
-  <link rel="icon" type="image/png" href="Aquarius.png">
+  <!-- Favicon - Əgər JPEG faylınız varsa, href="Aquarius.jpeg" istifadə edin -->
+  <link rel="icon" type="image/jpeg" href="Aquarius.jpeg">
   
   <link rel="stylesheet" href="style.css">
+
+  <!-- Riyazi düsturları (LaTeX) göstərmək üçün MathJax kitabxanası -->
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/MathJax.js?config=TeX-MML-AM_CHTML"></script>
 </head>
 <body>
 
   <div class="container">
-    <h1>Aquarius ilə Kviz Yarat</h1>
+    <h1>Aquarius Math Quiz</h1>
     
-    <!-- SÜRÜKLƏ-BURAX VƏ FAYL SEÇMƏ ZONASI -->
+    <!-- Fayl Yükləmə Zonası -->
     <div id="dropZone" class="drop-zone">
-      <!-- Dəyişiklik CSS-də pointer-events-i idarə etməklə olacaq -->
       <span id="dropZonePrompt" class="drop-zone__prompt">Faylı bura sürükləyin və ya klikləyin</span>
-      <!-- Gizli fayl daxiletməsi (Məhdudiyyətlərlə) -->
-      <input type="file" name="myFile" id="fileInput" class="drop-zone__input" accept=".pdf, .png, .jpg, .jpeg">
+      <input type="file" id="fileInput" class="drop-zone__input" accept=".pdf, .png, .jpg, .jpeg">
+    </div>
+
+    <!-- Sual və Səhifə Seçimi Bölməsi -->
+    <div class="options-section">
+      <label for="pagesInput">Səhifələr (məs: 1,3,5-7):</label>
+      <input type="text" id="pagesInput" placeholder="Boş qoysanız hamısı analiz ediləcək">
+
+      <label for="questionsInput">Sualların nömrələri (məs: 2,4,10-15):</label>
+      <input type="text" id="questionsInput" placeholder="Boş qoysanız avtomatik seçiləcək">
     </div>
 
     <button id="generateBtn">Kviz Yarat</button>
 
     <!-- Yüklənmə İndikatoru -->
-    <div id="loading" class="hidden">Sənəd analiz edilir və suallar hazırlanır... ⏳</div>
+    <div id="loading" class="hidden">Riyazi məsələlər analiz edilir... Bu bir az vaxt ala bilər ⏳</div>
 
     <!-- Kviz Ekrani -->
     <div id="quizContainer" class="hidden">
