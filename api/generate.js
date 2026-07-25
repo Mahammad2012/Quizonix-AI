@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     if (questions) promptText += `Yalnız bu sual nömrələrini analiz et: ${questions}. `;
 
     promptText += `
-Nəticəni DƏQİQ aşağıdakı JSON formatında qaytar. Başqa heç bir əlavə mətn və ya şərh yazma:
+Nəticəni DƏQİQ aşağıdakı JSON formatında qaytar. Başqa heç bir əlavə mətn, izahat və ya markdown işarəsi (məsələn ```json) yazma, birbaşa array ilə başla:
 [
   {
     "question": "Sualın mətni (LaTeX düsturlarını $düstur$ formatında yaz)",
@@ -50,8 +50,7 @@ QEYD: "correctAnswer" doğru cavabın 0-dan başlayan indeksidir (0=A, 1=B, 2=C,
       }
     };
 
-    // Yalnız işlək olan gemini-2.0-flash modeli istifadə olunur
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const url = `[https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$](https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$){apiKey}`;
     
     const apiResponse = await fetch(url, {
       method: 'POST',
@@ -63,16 +62,23 @@ QEYD: "correctAnswer" doğru cavabın 0-dan başlayan indeksidir (0=A, 1=B, 2=C,
 
     if (!apiResponse.ok) {
       console.error("Gemini API Xətası:", data);
-      return res.status(apiResponse.status).json({ 
-        error: data.error?.message || 'Gemini API cavab vermədi.' 
-      });
+      const errorMessage = data.error?.message || 'Gemini API cavab vermədi.';
+      
+      if (apiResponse.status === 429) {
+        return res.status(429).json({ error: 'Çox sayda sorğu göndərildi (Limit aşımı). Zəhmət olmasa 1-2 dəqiqə gözləyin.' });
+      }
+
+      return res.status(apiResponse.status).json({ error: errorMessage });
     }
 
-    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    let generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!generatedText) {
       return res.status(500).json({ error: 'Gemini-dən cavab alınmadı.' });
     }
+
+    // Əgər cavab blok içində gələrsə təmizləyirik
+    generatedText = generatedText.replace(/```json/g, '').replace(/```/g, '').trim();
 
     return res.status(200).json({ text: generatedText });
 
