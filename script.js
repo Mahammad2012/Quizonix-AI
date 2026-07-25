@@ -1,14 +1,17 @@
 let generatedQuiz = [];
 let userAnswers = {};
+let selectedFile = null; // Seçilmiş faylı saxlamaq üçün dəyişən
 
 const generateBtn = document.getElementById("generateBtn");
 const submitBtn = document.getElementById("submitBtn");
 const fileInput = document.getElementById("fileInput");
+const dropZone = document.getElementById("dropZone"); // Sürükləmə zonası
 const loading = document.getElementById("loading");
 const quizContainer = document.getElementById("quizContainer");
 const questionsDiv = document.getElementById("questions");
 const resultDiv = document.getElementById("result");
 
+// Faylı Base64-ə çevirən funksiya
 const fileToBase64 = (file) => new Promise((resolve, reject) => {
   const reader = new FileReader();
   reader.readAsDataURL(file);
@@ -16,10 +19,94 @@ const fileToBase64 = (file) => new Promise((resolve, reject) => {
   reader.onerror = (error) => reject(error);
 });
 
-generateBtn.addEventListener("click", async () => {
-  const file = fileInput.files[0];
+// --- SÜRÜKLƏ-BURAX VƏ FAYL SEÇMƏ MƏNTİQİ ---
 
-  if (!file) return alert("Zəhmət olmasa bir fayl seçin!");
+// Drop zonasına kliklədikdə gizli file input-u aktivləşdirir
+dropZone.addEventListener("click", (e) => {
+  fileInput.click();
+});
+
+// Fayl inputu vasitəsilə fayl seçildikdə
+fileInput.addEventListener("change", (e) => {
+  if (fileInput.files.length) {
+    updateThumbnail(dropZone, fileInput.files[0]);
+  }
+});
+
+// Sürükləmə hadisələri
+["dragover", "dragleave", "dragend"].forEach((type) => {
+  dropZone.addEventListener(type, (e) => {
+    e.preventDefault();
+    if (type === "dragover") {
+      dropZone.classList.add("drop-zone--over");
+    } else {
+      dropZone.classList.remove("drop-zone--over");
+    }
+  });
+});
+
+// Fayl drop zonasına buraxıldıqda
+dropZone.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dropZone.classList.remove("drop-zone--over");
+
+  if (e.dataTransfer.files.length) {
+    // Sürüklənən fayllardan yalnız birincisini götürür
+    const file = e.dataTransfer.files[0];
+    
+    // Fayl növünü yoxlayır (yalnız PDF, PNG, JPG)
+    const allowedTypes = ["application/pdf", "image/png", "image/jpeg"];
+    if (allowedTypes.includes(file.type)) {
+      fileInput.files = e.dataTransfer.files; // Gizli inputu yeniləyir (opsional)
+      updateThumbnail(dropZone, file);
+    } else {
+      alert("Xəta: Yalnız PDF, PNG və JPG faylları qəbul edilir.");
+    }
+  }
+});
+
+/**
+ * Drop zonasında seçilmiş faylın önizləməsini göstərir.
+ *
+ * @param {HTMLElement} dropZoneElement
+ * @param {File} file
+ */
+function updateThumbnail(dropZoneElement, file) {
+  let thumbnailElement = dropZoneElement.querySelector(".drop-zone__thumb");
+
+  // İlk dəfə fayl seçilirsə, önizləmə elementini yaradır
+  if (dropZoneElement.querySelector(".drop-zone__prompt")) {
+    dropZoneElement.querySelector(".drop-zone__prompt").remove();
+  }
+
+  if (!thumbnailElement) {
+    thumbnailElement = document.createElement("div");
+    thumbnailElement.className = "drop-zone__thumb";
+    dropZoneElement.appendChild(thumbnailElement);
+  }
+
+  thumbnailElement.dataset.label = file.name;
+  selectedFile = file; // Global dəyişəni yeniləyir
+
+  // Şəkil faylları üçün önizləməni göstərir
+  if (file.type.startsWith("image/")) {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      thumbnailElement.style.backgroundImage = `url('${reader.result}')`;
+    };
+  } else {
+    // Şəkil olmayan fayllar üçün (məs. PDF) ikon və ya standart fon
+    thumbnailElement.style.backgroundImage = null;
+    thumbnailElement.innerHTML = '<div style="font-size: 50px;">📄</div>'; // PDF ikonu
+  }
+}
+
+// --- KVİZ YARATMA MƏNTİQİ ---
+
+generateBtn.addEventListener("click", async () => {
+  // Global selectedFile dəyişənindən istifadə edir
+  if (!selectedFile) return alert("Zəhmət olmasa bir fayl seçin və ya sürükləyin!");
 
   loading.classList.remove("hidden");
   quizContainer.classList.add("hidden");
@@ -28,10 +115,10 @@ generateBtn.addEventListener("click", async () => {
   userAnswers = {};
 
   try {
-    const base64Data = await fileToBase64(file);
-    const mimeType = file.type || "image/png";
+    const base64Data = await fileToBase64(selectedFile);
+    const mimeType = selectedFile.type;
 
-    // Birbaşa Gemini API-yə yox, öz yaradacağımız Vercel API-yə sorğu göndəririk:
+    // Vercel Serverless API-yə sorğu
     const response = await fetch('/api/generate', {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -48,6 +135,7 @@ generateBtn.addEventListener("click", async () => {
     }
 
     let textResponse = data.text;
+    // JSON təmizlənməsi
     textResponse = textResponse.replace(/```json/g, "").replace(/```/g, "").trim();
     generatedQuiz = JSON.parse(textResponse);
 
@@ -59,6 +147,7 @@ generateBtn.addEventListener("click", async () => {
   }
 });
 
+// Kviz suallarını ekrana çıxaran funksiya
 function renderQuiz(quiz) {
   quizContainer.classList.remove("hidden");
   questionsDiv.innerHTML = "";
@@ -80,6 +169,7 @@ function renderQuiz(quiz) {
   });
 }
 
+// Variant seçilməsi funksiyası
 function selectOption(qIndex, optIndex, btn) {
   userAnswers[qIndex] = optIndex;
   const parent = btn.parentElement;
@@ -88,6 +178,7 @@ function selectOption(qIndex, optIndex, btn) {
   btn.classList.add("selected");
 }
 
+// Nəticəni yoxlama funksiyası
 submitBtn.addEventListener("click", () => {
   let score = 0;
   const qBoxes = questionsDiv.querySelectorAll(".question-box");
