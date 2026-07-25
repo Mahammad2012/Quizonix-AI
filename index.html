@@ -15,9 +15,10 @@
   <div class="container">
     <h1>Aquarius ilə Kviz Yarat</h1>
     
-    <!-- YENİ SÜRÜKLƏ-BURAX VƏ FAYL SEÇMƏ ZONASI -->
+    <!-- SÜRÜKLƏ-BURAX VƏ FAYL SEÇMƏ ZONASI -->
     <div id="dropZone" class="drop-zone">
-      <span class="drop-zone__prompt">Faylı bura sürükləyin və ya klikləyin</span>
+      <!-- Dəyişiklik CSS-də pointer-events-i idarə etməklə olacaq -->
+      <span id="dropZonePrompt" class="drop-zone__prompt">Faylı bura sürükləyin və ya klikləyin</span>
       <!-- Gizli fayl daxiletməsi (Məhdudiyyətlərlə) -->
       <input type="file" name="myFile" id="fileInput" class="drop-zone__input" accept=".pdf, .png, .jpg, .jpeg">
     </div>
