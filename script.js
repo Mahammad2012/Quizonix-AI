@@ -73,7 +73,7 @@ function updateThumbnail(dropZoneElement, file) {
     dropZoneElement.appendChild(thumb);
   }
   
-  // Fayl adındakı boşluqları və digər simvolları sadə üsulla təmizləyirik
+  // Təhlükəsiz fayl adı formatı
   let cleanName = file.name.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_\.-]/g, "");
 
   const sanitizedFile = new File([file], cleanName, { type: file.type });
