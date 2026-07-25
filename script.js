@@ -15,6 +15,13 @@ const quizContainer = document.getElementById("quizContainer");
 const questionsDiv = document.getElementById("questions");
 const resultDiv = document.getElementById("result");
 
+// Modal elementləri
+const previewModal = document.getElementById("previewModal");
+const modalImage = document.getElementById("modalImage");
+const modalPdf = document.getElementById("modalPdf");
+const pdfDownloadLink = document.getElementById("pdfDownloadLink");
+const closeModal = document.querySelector(".modal__close");
+
 const fileToBase64 = (file) => new Promise((resolve, reject) => {
   const reader = new FileReader();
   reader.readAsDataURL(file);
@@ -23,7 +30,12 @@ const fileToBase64 = (file) => new Promise((resolve, reject) => {
 });
 
 // --- DROP ZONE VƏ FAYL İDARƏSİ ---
-dropZone.addEventListener("click", () => fileInput.click());
+dropZone.addEventListener("click", (e) => {
+  // Əgər thumb elementinə kliklənibsə, file inputu açmırıq
+  if (e.target.classList.contains('drop-zone__thumb')) return;
+  fileInput.click();
+});
+
 fileInput.addEventListener("change", () => fileInput.files.length && updateThumbnail(dropZone, fileInput.files[0]));
 
 ["dragover", "dragleave", "dragend"].forEach(type => {
@@ -53,6 +65,13 @@ function updateThumbnail(dropZoneElement, file) {
   if (!thumb) {
     thumb = document.createElement("div");
     thumb.className = "drop-zone__thumb";
+    
+    // YENİ: Thumb elementinə kliklənəndə modalı açırıq
+    thumb.addEventListener("click", (e) => {
+      e.stopPropagation(); // Drop-zonanın öz kliklənmə hadisəsini dayandırır
+      openPreviewModal(file);
+    });
+    
     dropZoneElement.appendChild(thumb);
   }
   thumb.dataset.label = file.name;
@@ -66,6 +85,42 @@ function updateThumbnail(dropZoneElement, file) {
     thumb.innerHTML = '<div style="font-size:40px;">📄</div>';
   }
 }
+
+// YENİ: Önizləmə modalını açan funksiya
+function openPreviewModal(file) {
+  previewModal.classList.remove("hidden");
+  
+  if (file.type.startsWith("image/")) {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      modalImage.src = reader.result;
+      modalImage.classList.remove("hidden");
+      modalPdf.classList.add("hidden");
+    };
+  } else if (file.type === "application/pdf") {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      pdfDownloadLink.href = reader.result;
+      modalImage.classList.add("hidden");
+      modalPdf.classList.remove("hidden");
+    };
+  }
+}
+
+// Modal pəncərəsini bağlayan funksiyalar
+closeModal.addEventListener("click", () => {
+  previewModal.classList.add("hidden");
+  modalImage.src = "";
+});
+
+window.addEventListener("click", (e) => {
+  if (e.target === previewModal) {
+    previewModal.classList.add("hidden");
+    modalImage.src = "";
+  }
+});
 
 // --- KVİZ GENERASİYASI VƏ MATHJAX İNTEQRASİYASI ---
 generateBtn.addEventListener("click", async () => {
