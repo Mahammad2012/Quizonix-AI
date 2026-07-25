@@ -1,5 +1,5 @@
 // 🔑 BURAYA MÜTLƏQ ÖZ GEMINI API AÇARINIZI DAXİL EDİN
-const GEMINI_API_KEY = "BURAYA_API_AÇARINIZI_YAZIN";
+const GEMINI_API_KEY = "";
 
 let generatedQuiz = [];
 let userAnswers = {};
