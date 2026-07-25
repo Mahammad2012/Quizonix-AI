@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-  // Yalnız POST sorğularını qəbul edirik
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Yalnız POST sorğuları dəstəklənir' });
   }
@@ -11,14 +10,12 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Fayl məlumatı çatışmır' });
     }
 
-    // API Key yoxlanışı (Vercel Environment Variable və ya kod daxilindən)
+    // Vercel Environment Variables hissəsindən GEMINI_API_KEY oxunur
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.error("XƏTA: GEMINI_API_KEY Vercel Environment Variables hissəsində tapılmadı.");
-      return res.status(500).json({ error: 'API Açarı (GEMINI_API_KEY) Vercel tənzimləmələrində təyin olunmayıb.' });
+      return res.status(500).json({ error: 'GEMINI_API_KEY Vercel tənzimləmələrində tapılmadı.' });
     }
 
-    // Təlimat promptunun hazırlanması
     let promptText = "Bu sənəddəki riyazi sualları analiz et və çoxseçimli kviz yarat. ";
     if (pages) promptText += `Yalnız bu səhifələri analiz et: ${pages}. `;
     if (questions) promptText += `Yalnız bu sual nömrələrini analiz et: ${questions}. `;
@@ -35,7 +32,7 @@ Nəticəni DƏQİQ aşağıdakı JSON formatında qaytar. Başqa heç bir əlav�
 QEYD: "correctAnswer" doğru cavabın 0-dan başlayan indeksidir (0=A, 1=B, 2=C, 3=D).
 `;
 
-    // Google Gemini API-yə müraciət
+    // Gemini 1.5 Flash modeli üçün rəsmi müraciət ünvanı
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
     const payload = {
@@ -66,23 +63,22 @@ QEYD: "correctAnswer" doğru cavabın 0-dan başlayan indeksidir (0=A, 1=B, 2=C,
     const data = await apiResponse.json();
 
     if (!apiResponse.ok) {
-      console.error("Gemini API Xətası:", JSON.stringify(data));
+      console.error("Gemini API Xətası:", data);
       return res.status(apiResponse.status).json({ 
         error: data.error?.message || 'Gemini API cavab vermədi.' 
       });
     }
 
-    // Gemini-dən gələn cavabı götürürük
     const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!generatedText) {
-      return res.status(500).json({ error: 'Gemini-dən boş cavab gəldi' });
+      return res.status(500).json({ error: 'Gemini-dən cavab alınmadı.' });
     }
 
     return res.status(200).json({ text: generatedText });
 
   } catch (err) {
-    console.error("Serverless Function Xətası:", err);
+    console.error("Server Xətası:", err);
     return res.status(500).json({ error: 'Daxili server xətası: ' + err.message });
   }
 }
