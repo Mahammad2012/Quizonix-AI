@@ -14,7 +14,6 @@ const quizContainer = document.getElementById("quizContainer");
 const questionsDiv = document.getElementById("questions");
 const resultDiv = document.getElementById("result");
 
-// Modal Elementləri
 const previewModal = document.getElementById("previewModal");
 const modalImage = document.getElementById("modalImage");
 const modalPdf = document.getElementById("modalPdf");
@@ -28,7 +27,6 @@ const fileToBase64 = (file) => new Promise((resolve, reject) => {
   reader.onerror = (error) => reject(error);
 });
 
-// --- DROP ZONE VƏ FAYL İDARƏSİ ---
 dropZone.addEventListener("click", (e) => {
   if (e.target.classList.contains('drop-zone__thumb')) return;
   fileInput.click();
@@ -68,25 +66,15 @@ function updateThumbnail(dropZoneElement, file) {
   if (!thumb) {
     thumb = document.createElement("div");
     thumb.className = "drop-zone__thumb";
-    
     thumb.addEventListener("click", (e) => {
       e.stopPropagation();
       openPreviewModal(file);
     });
-    
     dropZoneElement.appendChild(thumb);
   }
   
-  // Fayl adındakı boşluqları və Azərbaycan simvollarını təmizləyirik
-  let cleanName = file.name
-    .replace(/ə/g, "e").replace(/Ə/g, "E")
-    .replace(/ü/g, "u").replace(/Ü/g, "U")
-    .replace(/ş/g, "s").replace(/Ş/g, "S")
-    .replace(/ö/g, "o").replace(/Ö/g, "O")
-    .replace(/ı/g, "i").replace(/İ/g, "I")
-    .replace(/ç/g, "c").replace(/Ç/g, "C")
-    .replace(/ğ/g, "g").replace(/Ğ/g, "G")
-    .replace(/\s+/g, "_"); // Boşluqları alt xəttə çeviririk
+  // Fayl adındakı boşluqları və digər simvolları sadə üsulla təmizləyirik
+  let cleanName = file.name.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_\.-]/g, "");
 
   const sanitizedFile = new File([file], cleanName, { type: file.type });
   selectedFile = sanitizedFile;
@@ -105,10 +93,8 @@ function updateThumbnail(dropZoneElement, file) {
   }
 }
 
-// --- MODAL İDARƏSİ ---
 function openPreviewModal(file) {
   if (!file) return;
-  
   if (file.type.startsWith("image/")) {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -148,7 +134,6 @@ window.addEventListener("click", (e) => {
   }
 });
 
-// --- KVİZ GENERASİYASI ---
 generateBtn.addEventListener("click", async () => {
   if (!selectedFile) return alert("Fayl seçin!");
 
