@@ -20,10 +20,11 @@ export default async function handler(req, res) {
     if (questions) promptText += `Yalnız bu sual nömrələrini analiz et: ${questions}. `;
 
     promptText += `
-Nəticəni DƏQİQ JSON formatında array şəklində qaytar. Başqa heç bir izahat yazma:
+Vacib: Cavabı YALNIZ və YALNIZ təmiz JSON formatında array şəklində qaytar. Heç bir izahat, şərh və ya əlavə mətn yazma.
+Format dəqiq belə olmalıdır:
 [
   {
-    "question": "Sualın mətni (LaTeX düsturlarını $düstur$ formatında yaz)",
+    "question": "Sualın mətni",
     "options": ["A variantı", "B variantı", "C variantı", "D variantı"],
     "correctAnswer": 0
   }
@@ -46,7 +47,8 @@ QEYD: "correctAnswer" doğru cavabın 0-dan başlayan indeksidir (0=A, 1=B, 2=C,
         }
       ],
       generationConfig: {
-        responseMimeType: "application/json"
+        responseMimeType: "application/json",
+        temperature: 0.2
       }
     };
 
@@ -72,9 +74,10 @@ QEYD: "correctAnswer" doğru cavabın 0-dan başlayan indeksidir (0=A, 1=B, 2=C,
       return res.status(500).json({ error: 'Gemini-dən cavab alınmadı.' });
     }
 
-    // Əgər cavabda əlavə mətnlər və ya markdown blokları varsa, təmizləyib yalnız JSON array-i tapırıq
+    // Markdown bloklarını təmizləyirik
     generatedText = generatedText.replace(/```json/g, '').replace(/```/g, '').trim();
     
+    // JSON massivini tapırıq
     const firstBracket = generatedText.indexOf('[');
     const lastBracket = generatedText.lastIndexOf(']');
     
@@ -82,8 +85,12 @@ QEYD: "correctAnswer" doğru cavabın 0-dan başlayan indeksidir (0=A, 1=B, 2=C,
       generatedText = generatedText.substring(firstBracket, lastBracket + 1);
     }
 
-    // JSON formatının düzgünlüyünü yoxlayırıq
-    JSON.parse(generatedText);
+    try {
+      JSON.parse(generatedText);
+    } catch (parseError) {
+      console.error("JSON Parse Xətası:", generatedText);
+      return res.status(500).json({ error: 'AI tərəfindən qeyri-düzgün JSON formatı qaytarıldı. Zəhmət olmasa yenidən sınayın.' });
+    }
 
     return res.status(200).json({ text: generatedText });
 
