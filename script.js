@@ -68,7 +68,18 @@ async function loadQuizFromDatabase(quizId) {
         if (error || !data) throw new Error("Test tapılmadı.");
 
         quizTitle.textContent = data.title || `Test #${quizId}`;
-        currentQuizData = data.questions_data;
+        
+        // JSON formatının düzgün massiv olmasını yoxlayırıq
+        let parsedData = data.questions_data;
+        if (typeof parsedData === 'string') {
+            try { parsedData = JSON.parse(parsedData); } catch(e) {}
+        }
+
+        currentQuizData = Array.isArray(parsedData) ? parsedData : [];
+        if (currentQuizData.length === 0) {
+            throw new Error("Bu testdə suallar mövcud deyil və ya formatı səhvdir.");
+        }
+
         currentQuestionIndex = 0;
         userAnswers = {};
 
@@ -87,15 +98,18 @@ function renderQuestion() {
     const q = currentQuizData[currentQuestionIndex];
     let optionsHtml = "";
 
-    q.options.forEach((opt, index) => {
+    // Qoruyucu yoxlama: variantlar massividirsə dövr et
+    const options = Array.isArray(q.options) ? q.options : [];
+
+    options.forEach((opt, index) => {
         const isSelected = userAnswers[currentQuestionIndex] === index ? "selected" : "";
         optionsHtml += `<button class="option-btn ${isSelected}" onclick="selectOption(${index})">${opt}</button>`;
     });
 
     questionBox.innerHTML = `
         <p style="margin-bottom: 10px; font-weight: 600; font-size: 14px; color: #a5b4fc;">Sual ${currentQuestionIndex + 1} / ${currentQuizData.length}</p>
-        <p style="margin-bottom: 14px;">${q.question}</p>
-        ${optionsHtml}
+        <p style="margin-bottom: 14px;">${q.question || "Sual mətni tapılmadı"}</p>
+        ${optionsHtml.length > 0 ? optionsHtml : "<p style='color: #ef4444;'>Bu sual üçün variantlar tapılmadı.</p>"}
     `;
 
     prevQuestionBtn.style.display = currentQuestionIndex === 0 ? "none" : "block";
