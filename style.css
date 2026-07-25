@@ -1,6 +1,6 @@
 * {
   box-sizing: border-box;
-  font-family: 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Segoe UI', sans-serif;
   margin: 0;
   padding: 0;
 }
@@ -19,9 +19,8 @@ body {
   background: #161226;
   padding: 24px;
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(112, 0, 255, 0.25);
   border: 1px solid #2a1f47;
-  max-width: 420px;
+  max-width: 480px;
   width: 100%;
 }
 
@@ -29,46 +28,30 @@ h1 {
   text-align: center;
   color: #c084fc;
   margin-bottom: 20px;
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 22px;
 }
 
 /* DROP-ZONE STİLLƏRİ */
 .drop-zone {
-  max-width: 100%;
-  height: 150px;
-  padding: 25px;
+  height: 120px;
+  border: 2px dashed #3b2d59;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  font-weight: 500;
-  font-size: 16px;
   cursor: pointer;
   color: #a78bfa;
-  border: 2px dashed #3b2d59;
-  border-radius: 12px;
-  margin-bottom: 20px;
-  transition: all 0.3s ease;
-  position: relative; /* Thumb elementləri üçün lazım ola bilər */
+  margin-bottom: 15px;
+  transition: 0.3s;
 }
 
-.drop-zone:hover {
+.drop-zone:hover, .drop-zone--over {
   border-color: #c084fc;
   background-color: #1a1530;
 }
 
-.drop-zone--over {
-  border-style: solid;
-  border-color: #c084fc;
-  background-color: #2a1f47;
-  color: #fff;
-}
-
-/* Xüsusi Mətn Teqi üçün */
 .drop-zone__prompt {
-  /* YENİ: Bu sətir sayəsində mətndən keçən kliklənmələr altındakı drop-zonaya ötürülür */
-  pointer-events: none; 
+  pointer-events: none;
 }
 
 .drop-zone__input {
@@ -79,24 +62,50 @@ h1 {
   width: 100%;
   height: 100%;
   border-radius: 10px;
-  overflow: hidden;
-  background-color: #0d0b18;
-  background-size: cover;
-  background-position: center; /* Thumb elementini mərkəzləşdirir */
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .drop-zone__thumb::after {
   content: attr(data-label);
   position: absolute;
   bottom: 0;
-  left: 0;
+  background: rgba(0,0,0,0.7);
   width: 100%;
-  padding: 5px 0;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.75);
-  font-size: 12px;
   text-align: center;
+  font-size: 11px;
+  padding: 2px;
+}
+
+/* Seçimlər bölməsi üçün stillər */
+.options-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 15px;
+  background: #1a1530;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #2a1f47;
+}
+
+.options-section label {
+  font-size: 13px;
+  color: #d8b4fe;
+}
+
+.options-section input {
+  padding: 8px;
+  background: #0d0b18;
+  border: 1px solid #3b2d59;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 13px;
 }
 
 button {
@@ -105,16 +114,13 @@ button {
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 15px;
-  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
   width: 100%;
+  font-weight: bold;
 }
 
 button:hover {
   background: linear-gradient(135deg, #6b21a8, #7e22ce);
-  box-shadow: 0 4px 15px rgba(147, 51, 234, 0.4);
 }
 
 .hidden {
@@ -123,21 +129,18 @@ button:hover {
 
 #loading {
   text-align: center;
-  font-size: 14px;
-  font-weight: 500;
   color: #c084fc;
   margin: 15px 0;
   animation: pulse 1.5s infinite;
 }
 
 @keyframes pulse {
-  0% { opacity: 0.5; }
+  0%, 100% { opacity: 0.5; }
   50% { opacity: 1; }
-  100% { opacity: 0.5; }
 }
 
 .question-box {
-  margin-bottom: 18px;
+  margin-bottom: 15px;
   background: #0d0b18;
   padding: 15px;
   border-radius: 10px;
@@ -147,26 +150,20 @@ button:hover {
 .question-box h3 {
   color: #f3e8ff;
   font-size: 15px;
-  margin-bottom: 12px;
-  line-height: 1.4;
+  margin-bottom: 10px;
 }
 
 .option-btn {
   display: block;
   width: 100%;
   text-align: left;
-  margin: 6px 0;
+  margin: 5px 0;
   background: #161226;
   color: #d8b4fe;
   border: 1px solid #3b2d59;
   border-radius: 6px;
   padding: 10px;
   font-size: 14px;
-}
-
-.option-btn:hover {
-  background: #251b42;
-  border-color: #a855f7;
 }
 
 .option-btn.selected {
@@ -189,8 +186,13 @@ button:hover {
 
 .result {
   margin-top: 15px;
-  font-size: 16px;
-  font-weight: bold;
   text-align: center;
   color: #a855f7;
+  font-weight: bold;
+}
+
+/* MathJax düsturlarının fon rəngi ilə uyğunlaşması */
+.MathJax {
+  outline: none;
+  background: transparent !important;
 }
