@@ -31,7 +31,6 @@ Nəticəni DƏQİQ aşağıdakı JSON formatında qaytar. Başqa heç bir əlav�
 QEYD: "correctAnswer" doğru cavabın 0-dan başlayan indeksidir (0=A, 1=B, 2=C, 3=D).
 `;
 
-    // Fayl birbaşa Gemini-yə göndərilir + Google Search aləti qoşulur
     const payload = {
       contents: [
         {
@@ -46,50 +45,36 @@ QEYD: "correctAnswer" doğru cavabın 0-dan başlayan indeksidir (0=A, 1=B, 2=C,
           ]
         }
       ],
-      // Google Axtarış İnteqrasiyası (Grounding)
-      tools: [
-        {
-          googleSearch: {}
-        }
-      ],
       generationConfig: {
         responseMimeType: "application/json"
       }
     };
 
-    // Pulsuz Flash modelləri
-    const models = [
-      'gemini-2.0-flash',
-      'gemini-1.5-flash'
-    ];
+    // Yalnız işlək olan gemini-2.0-flash modeli istifadə olunur
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    
+    const apiResponse = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
 
-    let lastError = null;
+    const data = await apiResponse.json();
 
-    for (const model of models) {
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-        
-        const apiResponse = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        const data = await apiResponse.json();
-
-        if (apiResponse.ok && data.candidates?.[0]?.content?.parts?.[0]?.text) {
-          return res.status(200).json({ text: data.candidates[0].content.parts[0].text });
-        } else {
-          console.warn(`${model} modelində xəta və ya limit yarandı:`, data.error?.message);
-          lastError = data.error?.message || `${model} uğursuz oldu`;
-        }
-      } catch (e) {
-        console.warn(`${model} modelinə sorğu göndərərkən xəta:`, e.message);
-        lastError = e.message;
-      }
+    if (!apiResponse.ok) {
+      console.error("Gemini API Xətası:", data);
+      return res.status(apiResponse.status).json({ 
+        error: data.error?.message || 'Gemini API cavab vermədi.' 
+      });
     }
 
-    return res.status(500).json({ error: `Bütün pulsuz modellər uğursuz oldu. Son xəta: ${lastError}` });
+    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!generatedText) {
+      return res.status(500).json({ error: 'Gemini-dən cavab alınmadı.' });
+    }
+
+    return res.status(200).json({ text: generatedText });
 
   } catch (err) {
     console.error("Server Xətası:", err);
