@@ -1,15 +1,45 @@
-<!-- Online Testlər Bölməsi -->
-<div class="online-tests-section" style="margin-top: 30px; padding: 20px; background: #1e293b; border-radius: 12px;">
-    <h2>🌐 Supabase Online Testlər</h2>
-    <p>Bazadan mövcud testi seçin və ya ID/Kod daxil edin:</p>
-    
-    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-        <input type="number" id="quizIdInput" placeholder="Test ID (Məs: 1)" style="padding: 10px; border-radius: 6px; border: 1px solid #475569; background: #0f172a; color: white; flex: 1;">
-        <button id="loadQuizByIdBtn" style="padding: 10px 20px; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;">Testi Aç</button>
+<!DOCTYPE html>
+<html lang="az">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aquarius Kviz AI</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="main-wrapper">
+        <div class="card-container">
+            <h1>✨ Aquarius Kviz AI</h1>
+            <p class="subtitle">Supabase üzərindən mövcud testləri seçin və ya ID ilə qoşulun</p>
+            
+            <!-- Test Axtarış Bölməsi -->
+            <div class="input-group">
+                <input type="number" id="quizIdInput" placeholder="Test ID (Məs: 1)">
+                <button id="loadQuizByIdBtn" class="btn primary-btn">Testi Aç</button>
+            </div>
+
+            <div class="list-section">
+                <button id="fetchQuizListBtn" class="btn secondary-btn">Mövcud Testlərin Siyahısını Göstər</button>
+                <div id="quizListContainer" class="quiz-list"></div>
+            </div>
+
+            <!-- Kviz Ekranı -->
+            <div id="quizContainer" class="quiz-container hidden">
+                <h2 id="quizTitle">Test Başlığı</h2>
+                <div id="questionBox" class="question-box"></div>
+                <div class="quiz-nav">
+                    <button id="prevQuestionBtn" class="btn secondary-btn">Əvvəlki</button>
+                    <button id="nextQuestionBtn" class="btn primary-btn">Növbəti</button>
+                </div>
+            </div>
+            
+            <!-- Yüklənmə İndikatoru -->
+            <div id="loading" class="loading hidden">Yüklənir...</div>
+        </div>
     </div>
 
-    <div style="margin-top: 10px;">
-        <button id="fetchQuizListBtn" style="padding: 8px 15px; background: #64748b; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">Mövcud Testlərin Siyahısını Göstər</button>
-        <div id="quizListContainer" style="margin-top: 10px; max-height: 150px; overflow-y: auto;"></div>
-    </div>
-</div>
+    <!-- Supabase Client -->
+    <script type="module" src="script.js"></script>
+</body>
+</html>
