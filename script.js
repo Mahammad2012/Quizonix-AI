@@ -205,6 +205,56 @@ function selectOption(qIndex, optIndex, btn) {
   btn.classList.add("selected");
 }
 
+function updateThumbnail(dropZoneElement, file) {
+  let thumb = dropZoneElement.querySelector(".drop-zone__thumb");
+  if (dropZoneElement.querySelector(".drop-zone__prompt")) {
+    dropZoneElement.querySelector(".drop-zone__prompt").remove();
+  }
+  
+  if (!thumb) {
+    thumb = document.createElement("div");
+    thumb.className = "drop-zone__thumb";
+    thumb.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openPreviewModal(file);
+    });
+    dropZoneElement.appendChild(thumb);
+  }
+  
+  // Azərbaycan hərflərini və boşluqları qüsursuz emal etmək üçün təmizləmə
+  let cleanName = file.name
+    .replace(/[əƏ]/g, "e")
+    .replace(/[üÜ]/g, "u")
+    .replace(/[şŞ]/g, "s")
+    .replace(/[öÖ]/g, "o")
+    .replace(/[ıİ]/g, "i")
+    .replace(/[çÇ]/g, "c")
+    .replace(/[ğĞ]/g, "g")
+    .replace(/\s+/g, "_")
+    .replace(/[^a-zA-Z0-9_\.-]/g, "");
+
+  // Əgər təmizlənmədən sonra ad boş qalarsa standart ad təyin olunur
+  if (!cleanName || cleanName === ".") {
+    cleanName = "document.pdf";
+  }
+
+  const sanitizedFile = new File([file], cleanName, { type: file.type });
+  selectedFile = sanitizedFile;
+  
+  thumb.dataset.label = cleanName;
+  
+  if (file.type.startsWith("image/")) {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => {
+      thumb.style.backgroundImage = `url('${reader.result}')`;
+    };
+  } else {
+    thumb.style.backgroundImage = null;
+    thumb.innerHTML = '<div style="font-size:40px;">📄</div>';
+  }
+}
+
 submitBtn.addEventListener("click", () => {
   let score = 0;
   const qBoxes = questionsDiv.querySelectorAll(".question-box");
