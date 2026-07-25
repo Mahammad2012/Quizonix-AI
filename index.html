@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Quiz Generator</title>
-  <link rel="icon" type="image/png" href="Aquarius.png">
+  <title>Aquarius - AI Quiz Generator</title>
+  
+  <!-- Favicon linkini bura əlavə edin -->
+  <link rel="icon" type="image/jpeg" href="Aquarius.jpeg">
+  
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,11 +15,14 @@
   <div class="container">
     <h1>Aquarius ilə Kviz Yarat</h1>
     
-    <!-- Fayl Yükləmə Bölməsi -->
-    <div class="upload-section">
-      <input type="file" id="fileInput" accept="image/png, image/jpeg, text/plain">
-      <button id="generateBtn">Kviz Yarat</button>
+    <!-- YENİ SÜRÜKLƏ-BURAX VƏ FAYL SEÇMƏ ZONASI -->
+    <div id="dropZone" class="drop-zone">
+      <span class="drop-zone__prompt">Faylı bura sürükləyin və ya klikləyin</span>
+      <!-- Gizli fayl daxiletməsi (Məhdudiyyətlərlə) -->
+      <input type="file" name="myFile" id="fileInput" class="drop-zone__input" accept=".pdf, .png, .jpg, .jpeg">
     </div>
+
+    <button id="generateBtn">Kviz Yarat</button>
 
     <!-- Yüklənmə İndikatoru -->
     <div id="loading" class="hidden">Sənəd analiz edilir və suallar hazırlanır... ⏳</div>
