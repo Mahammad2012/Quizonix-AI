@@ -5,8 +5,6 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const fetchQuizListBtn = document.getElementById("fetchQuizListBtn");
-const quizListContainer = document.getElementById("quizListContainer");
 const loadQuizByIdBtn = document.getElementById("loadQuizByIdBtn");
 const quizIdInput = document.getElementById("quizIdInput");
 const searchSection = document.getElementById("searchSection");
@@ -24,34 +22,6 @@ let currentQuestionIndex = 0;
 let userAnswers = {};
 let timerInterval = null;
 
-fetchQuizListBtn.addEventListener("click", async () => {
-    quizListContainer.innerHTML = "<p class='loading'>Siyahı yüklənir...</p>";
-    try {
-        const { data, error } = await supabase
-            .from('quizzes')
-            .select('id, title, created_at, duration')
-            .order('created_at', { ascending: false });
-
-        if (error) throw error;
-
-        quizListContainer.innerHTML = "";
-        if (!data || data.length === 0) {
-            quizListContainer.innerHTML = "<p style='color: #c084fc; font-size: 13px;'>Hələ ki heç bir test yoxdur.</p>";
-            return;
-        }
-
-        data.forEach(q => {
-            const item = document.createElement("div");
-            item.className = "quiz-list-item";
-            item.innerHTML = `<span><b>#${q.id}</b> - ${q.title}</span> <span style="font-size: 11px; color: #c084fc;">${q.duration ? q.duration + ' dəq' : ''}</span>`;
-            item.onclick = () => loadQuizFromDatabase(q.id);
-            quizListContainer.appendChild(item);
-        });
-    } catch (err) {
-        quizListContainer.innerHTML = `<p style='color: #ef4444; font-size: 13px;'>Xəta: ${err.message}</p>`;
-    }
-});
-
 loadQuizByIdBtn.addEventListener("click", () => {
     const id = quizIdInput.value.trim();
     if (!id) return alert("Zəhmət olmasa Test ID daxil edin!");
@@ -62,9 +32,10 @@ async function loadQuizFromDatabase(quizId) {
     loading.classList.remove("hidden");
 
     try {
+        // duration sütunundan asılılıq yaradılmaması üçün yalnız vacib sahələr çəkilir
         const { data, error } = await supabase
             .from('quizzes')
-            .select('title, questions_data, duration')
+            .select('title, questions_data')
             .eq('id', quizId)
             .single();
 
@@ -85,44 +56,18 @@ async function loadQuizFromDatabase(quizId) {
         currentQuestionIndex = 0;
         userAnswers = {};
 
-        // Axtarış panelini gizlət, test ekranını göstər
+        // Axtarış panelini tamamilə gizlət, test ekranını aktivləşdir
         searchSection.classList.add("hidden");
         quizContainer.classList.remove("hidden");
 
         renderQuestion();
-
-        // Əgər bazada vaxt (duration) təyin edilibsə geri sayımı başlat
-        if (data.duration && data.duration > 0) {
-            startTimer(data.duration * 60);
-        } else {
-            timerBox.classList.add("hidden");
-        }
+        timerBox.classList.add("hidden"); // Vaxt sütunu olmadığı üçün taymer gizli qalır
 
     } catch (err) {
         alert("Xəta: " + err.message);
     } finally {
         loading.classList.add("hidden");
     }
-}
-
-function startTimer(durationInSeconds) {
-    let remainingTime = durationInSeconds;
-    timerBox.classList.remove("hidden");
-
-    if (timerInterval) clearInterval(timerInterval);
-
-    timerInterval = setInterval(() => {
-        let minutes = Math.floor(remainingTime / 60);
-        let seconds = remainingTime % 60;
-        timeLeftSpan.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
-        if (remainingTime <= 0) {
-            clearInterval(timerInterval);
-            alert("Vaxt bitdi!");
-            showResults();
-        }
-        remainingTime--;
-    }, 1000);
 }
 
 function renderQuestion() {
