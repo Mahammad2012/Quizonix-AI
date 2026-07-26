@@ -18,6 +18,7 @@ const questionBox = document.getElementById("questionBox");
 const prevQuestionBtn = document.getElementById("prevQuestionBtn");
 const nextQuestionBtn = document.getElementById("nextQuestionBtn");
 
+let currentQuizId = null;
 let currentQuizData = [];
 let currentQuestionIndex = 0;
 let userAnswers = {};
@@ -39,6 +40,7 @@ loadQuizByIdBtn.addEventListener("click", () => {
     }
 
     studentInfo = { name, surname, class: studentClass };
+    currentQuizId = quizId;
     loadQuizFromDatabase(quizId);
 });
 
@@ -108,7 +110,6 @@ function startTimer() {
         quizContainer.prepend(timerEl);
     }
     
-    // Ayrı mərkəzləşdirilmiş çərçivə üslubu (yuxarı orta hissə)
     timerEl.style.cssText = "display: flex; justify-content: center; align-items: center; background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); padding: 8px 16px; border-radius: 12px; font-weight: bold; color: #f87171; margin: 0 auto 16px auto; width: fit-content; font-size: 15px;";
 
     timerInterval = setInterval(() => {
@@ -172,7 +173,7 @@ prevQuestionBtn.addEventListener("click", () => {
     }
 });
 
-function showResults() {
+async function showResults() {
     clearInterval(timerInterval);
 
     let score = 0;
@@ -200,11 +201,30 @@ function showResults() {
         details: details
     };
 
+    // 1. Supabase-dəki 'student_results' cədvəlinə məlumatın yazılması
+    try {
+        const { error } = await supabase.from('student_results').insert([
+            {
+                quiz_id: parseInt(currentQuizId) || null,
+                student_name: studentInfo.name,
+                student_surname: studentInfo.surname,
+                student_class: studentInfo.class,
+                score: score,
+                total: total,
+                details_json: JSON.stringify(details)
+            }
+        ]);
+        if (error) console.error("Supabase-ə yazılarkən xəta:", error);
+    } catch (err) {
+        console.error("Nəticə göndərilmədi:", err);
+    }
+
+    // 2. Android Bridge mövcuddursa tətbiqə ötürülməsi
     if (window.AndroidBridge && typeof window.AndroidBridge.onQuizFinished === 'function') {
         window.AndroidBridge.onQuizFinished(JSON.stringify(resultPayload));
     }
 
-    // Nəticəni birbaşa ekranda göstərmək üçün interfeys
+    // 3. Ekranda nəticənin göstərilməsi
     quizContainer.innerHTML = `
         <div style="text-align: center; color: white; padding: 20px;">
             <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 12px; color: #a855f7;">🎉 Sınaq Tamamlandı!</h2>
