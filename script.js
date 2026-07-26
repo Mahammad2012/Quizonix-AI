@@ -6,6 +6,9 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const loadQuizByIdBtn = document.getElementById("loadQuizByIdBtn");
+const studentNameInput = document.getElementById("studentNameInput");
+const studentSurnameInput = document.getElementById("studentSurnameInput");
+const studentClassInput = document.getElementById("studentClassInput");
 const quizIdInput = document.getElementById("quizIdInput");
 const searchSection = document.getElementById("searchSection");
 const quizContainer = document.getElementById("quizContainer");
@@ -14,25 +17,33 @@ const quizTitle = document.getElementById("quizTitle");
 const questionBox = document.getElementById("questionBox");
 const prevQuestionBtn = document.getElementById("prevQuestionBtn");
 const nextQuestionBtn = document.getElementById("nextQuestionBtn");
-const timerBox = document.getElementById("timerBox");
-const timeLeftSpan = document.getElementById("timeLeft");
 
 let currentQuizData = [];
 let currentQuestionIndex = 0;
 let userAnswers = {};
-let timerInterval = null;
+let studentInfo = {};
 
 loadQuizByIdBtn.addEventListener("click", () => {
-    const id = quizIdInput.value.trim();
-    if (!id) return alert("Zəhmət olmasa Test ID daxil edin!");
-    loadQuizFromDatabase(id);
+    const name = studentNameInput.value.trim();
+    const surname = studentSurnameInput.value.trim();
+    const studentClass = studentClassInput.value.trim();
+    const quizId = quizIdInput.value.trim();
+
+    if (!name || !surname || !studentClass) {
+        return alert("Zəhmət olmasa Ad, Soyad və Sinif məlumatlarını daxil edin!");
+    }
+    if (!quizId) {
+        return alert("Zəhmət olmasa Test ID daxil edin!");
+    }
+
+    studentInfo = { name, surname, class: studentClass };
+    loadQuizFromDatabase(quizId);
 });
 
 async function loadQuizFromDatabase(quizId) {
     loading.classList.remove("hidden");
 
     try {
-        // duration sütunundan asılılıq yaradılmaması üçün yalnız vacib sahələr çəkilir
         const { data, error } = await supabase
             .from('quizzes')
             .select('title, questions_data')
@@ -56,13 +67,10 @@ async function loadQuizFromDatabase(quizId) {
         currentQuestionIndex = 0;
         userAnswers = {};
 
-        // Axtarış panelini tamamilə gizlət, test ekranını aktivləşdir
         searchSection.classList.add("hidden");
         quizContainer.classList.remove("hidden");
 
         renderQuestion();
-        timerBox.classList.add("hidden"); // Vaxt sütunu olmadığı üçün taymer gizli qalır
-
     } catch (err) {
         alert("Xəta: " + err.message);
     } finally {
@@ -87,8 +95,8 @@ function renderQuestion() {
     const questionText = q.question || q.text || q.prompt || q.title || (typeof q === 'string' ? q : null);
 
     questionBox.innerHTML = `
-        <p style="margin-bottom: 10px; font-weight: 600; font-size: 14px; color: #d8b4fe;">Sual ${currentQuestionIndex + 1} / ${currentQuizData.length}</p>
-        <p style="margin-bottom: 14px;">${questionText || ""}</p>
+        <p style="margin-bottom: 8px; font-weight: 600; font-size: 13px; color: #d8b4fe;">Sual ${currentQuestionIndex + 1} / ${currentQuizData.length}</p>
+        <p style="margin-bottom: 12px;">${questionText || ""}</p>
         ${optionsHtml}
     `;
 
@@ -118,8 +126,6 @@ prevQuestionBtn.addEventListener("click", () => {
 });
 
 function showResults() {
-    if (timerInterval) clearInterval(timerInterval);
-
     let correctCount = 0;
     let details = [];
 
@@ -135,8 +141,9 @@ function showResults() {
         });
     });
 
-    // Nəticələrin Android tətbiqə ötürülməsi
+    // Şagird məlumatları və nəticənin tətbiqə ötürülməsi
     const resultPayload = {
+        student: studentInfo,
         score: correctCount,
         total: currentQuizData.length,
         details: details
@@ -147,13 +154,13 @@ function showResults() {
     }
 
     questionBox.innerHTML = `
-        <div style="text-align: center; padding: 15px;">
+        <div style="text-align: center; padding: 10px;">
             <h3>🎉 Test Tamamlandı!</h3>
-            <p style="font-size: 16px; margin: 12px 0;">Nəticəniz: <b>${correctCount}</b> / ${currentQuizData.length}</p>
+            <p style="font-size: 14px; margin: 10px 0;"><b>${studentInfo.name} ${studentInfo.surname}</b> (${studentInfo.class})</p>
+            <p style="font-size: 15px; margin: 8px 0;">Nəticəniz: <b>${correctCount}</b> / ${currentQuizData.length}</p>
             <button class="btn primary-btn" onclick="location.reload()">Yeni Testə Başla</button>
         </div>
     `;
     prevQuestionBtn.style.display = "none";
     nextQuestionBtn.style.display = "none";
-    timerBox.classList.add("hidden");
 }
