@@ -660,8 +660,9 @@ async function showResults() {
 
     currentQuizData.forEach((q, idx) => {
         const userAnsIdx = userAnswers[idx];
-        const correctAnsIdx = q.correctAnswer !== undefined ? q.correctAnswer : q.correct;
+        const correctAnsIdx = q.correctAnswer !== undefined ? q.correctAnswer : 0;
         const isCorrect = userAnsIdx === correctAnsIdx;
+        
         if (isCorrect) score++;
 
         const rawOptions = q.options || q.choices || q.variants || [];
@@ -688,13 +689,21 @@ async function showResults() {
         console.error("Nəticə yazılarkən xəta:", err);
     }
 
+    const percent = Math.round((score / total) * 100);
+
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; justify-content: center; align-items: center;">
             <div style="width: 100%; max-width: 400px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 20px; text-align: center; color: white;">
                 <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 12px; color: #22c55e;">🎉 Sınaq Tamamlandı!</h2>
-                <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); padding: 16px; border-radius: 12px; margin-bottom: 20px;">
-                    <p style="font-size: 16px; margin-bottom: 6px;">İştirakçı: <b>${currentStudent.name} ${currentStudent.surname} (${currentStudent.student_class})</b></p>
-                    <p style="font-size: 20px; font-weight: bold; color: #22c55e;">Nəticə: ${score} / ${total}</p>
+                <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+                    <p style="font-size: 15px; margin: 0;">İştirakçı: <b>${currentStudent.name} ${currentStudent.surname}</b></p>
+                    <p style="font-size: 18px; font-weight: bold; color: #22c55e; margin: 0;">Nəticə: ${score} / ${total}</p>
+                    
+                    <div style="width: 70px; height: 70px; border-radius: 50%; background: conic-gradient(#22c55e ${percent}%, rgba(255,255,255,0.1) 0%); display: flex; justify-content: center; align-items: center; position: relative;">
+                        <div style="width: 54px; height: 54px; background: #18152e; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: bold; color: #d8b4fe;">
+                            ${percent}%
+                        </div>
+                    </div>
                 </div>
                 <button id="backToCabinetBtn" style="padding: 12px 24px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%;">Kabinetə qayıt</button>
             </div>
