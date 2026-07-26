@@ -233,8 +233,8 @@ async function renderStudentDashboard() {
                 </div>
 
                 <h3 style="font-size: 18px; margin-bottom: 16px; color: #e2e8f0;">📝 Mövcud Sınaqlar</h3>
-                <div id="quizzesList" style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
-                    <p style="text-align: center; color: #94a3b8; padding: 20px;">Sınaqlar yüklənir...</p>
+                <div id="quizzesList" style="display: flex; flex-wrap: wrap; gap: 16px; width: 100%;">
+                    <p style="text-align: center; color: #94a3b8; padding: 20px; width: 100%;">Sınaqlar yüklənir...</p>
                 </div>
             </div>
         </div>
@@ -287,20 +287,20 @@ async function renderStudentDashboard() {
         const listContainer = document.getElementById('quizzesList');
 
         if (error || !quizzes || quizzes.length === 0) {
-            listContainer.innerHTML = `<p style="text-align: center; color: #94a3b8; background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px;">Hazırda aktiv sınaq mövcud deyil.</p>`;
+            listContainer.innerHTML = `<p style="text-align: center; color: #94a3b8; background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; width: 100%;">Hazırda aktiv sınaq mövcud deyil.</p>`;
             return;
         }
 
         listContainer.innerHTML = '';
         quizzes.forEach(quiz => {
             const card = document.createElement('div');
-            card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 16px 20px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; width: 100%;";
+            card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; width: 300px; height: 120px;";
             card.innerHTML = `
-                <div>
-                    <h4 style="font-size: 15px; font-weight: 600; color: #f1f5f9; margin: 0 0 4px 0;">${quiz.title || `Test #${quiz.id}`}</h4>
+                <div style="overflow: hidden;">
+                    <h4 style="font-size: 15px; font-weight: 600; color: #f1f5f9; margin: 0 0 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${quiz.title || `Test #${quiz.id}`}</h4>
                     <p style="font-size: 13px; color: #a78bfa; margin: 0;">⏱️ Müddət: ${quiz.duration ? quiz.duration + ' dəqiqə' : 'Məhdudiyyət yoxdur'}</p>
                 </div>
-                <button data-id="${quiz.id}" class="startQuizBtn" style="padding: 8px 16px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; white-space: nowrap;">Sınağa Başla</button>
+                <button data-id="${quiz.id}" class="startQuizBtn" style="padding: 8px 16px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; white-space: nowrap; flex-shrink: 0;">Sınağa Başla</button>
             `;
             listContainer.appendChild(card);
         });
@@ -311,7 +311,7 @@ async function renderStudentDashboard() {
             });
         });
     } catch (err) {
-        document.getElementById('quizzesList').innerHTML = `<p style="text-align: center; color: #f87171;">Sınaqları yükləmək mümkün olmadı.</p>`;
+        document.getElementById('quizzesList').innerHTML = `<p style="text-align: center; color: #f87171; width: 100%;">Sınaqları yükləmək mümkün olmadı.</p>`;
     }
 }
 
