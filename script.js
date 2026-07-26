@@ -239,15 +239,27 @@ async function renderStudentDashboard() {
             </div>
         </div>
         
-        <div id="profileDropdown" style="display: none; position: fixed; background: rgba(20, 15, 40, 0.98); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; width: 180px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); z-index: 99999; overflow: hidden;">
-            <button id="menuMyResults" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08);">📊 Nəticələrim</button>
-            <button id="menuChangePassword" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08);">🔑 Şifrəni dəyişdir</button>
-            <button id="menuLogout" style="width: 100%; padding: 12px 16px; background: none; border: none; color: #f87171; text-align: left; cursor: pointer; font-size: 14px;">🚪 Çıxış et</button>
+        <div id="profileDropdown" style="display: none; position: fixed; background: rgba(20, 15, 40, 0.98); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; width: 200px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); z-index: 99999; overflow: hidden;">
+            <button id="menuMyResults" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; transition: background 0.2s;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"></path><path d="M12 20V4"></path><path d="M6 20v-6"></path></svg>Nəticələrim</button>
+            <button id="menuChangePassword" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; transition: background 0.2s;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Şifrəni dəyişdir</button>
+            <button id="menuLogout" style="width: 100%; padding: 12px 16px; background: none; border: none; color: #f87171; text-align: left; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 10px; transition: background 0.2s;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>Çıxış et</button>
         </div>
     `;
 
     const profileCircle = document.getElementById('profileCircle');
     const profileDropdown = document.getElementById('profileDropdown');
+
+    const menuMyResults = document.getElementById('menuMyResults');
+    const menuChangePassword = document.getElementById('menuChangePassword');
+    const menuLogout = document.getElementById('menuLogout');
+
+    [menuMyResults, menuChangePassword].forEach(btn => {
+        btn.addEventListener('mouseenter', () => btn.style.background = 'rgba(126, 34, 206, 0.25)');
+        btn.addEventListener('mouseleave', () => btn.style.background = 'none');
+    });
+
+    menuLogout.addEventListener('mouseenter', () => menuLogout.style.background = 'rgba(248, 113, 113, 0.2)');
+    menuLogout.addEventListener('mouseleave', () => menuLogout.style.background = 'none');
 
     profileCircle.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -567,6 +579,7 @@ async function showResults() {
     const total = currentQuizData.length;
     const details = [];
 
+    currentQuizData.cols = currentQuizData.cols || []; // safe guard
     currentQuizData.forEach((q, idx) => {
         const userAnsIdx = userAnswers[idx];
         const correctAnsIdx = q.correctAnswer !== undefined ? q.correctAnswer : q.correct;
