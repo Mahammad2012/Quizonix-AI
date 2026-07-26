@@ -202,10 +202,17 @@ function showResults() {
 
     if (window.AndroidBridge && typeof window.AndroidBridge.onQuizFinished === 'function') {
         window.AndroidBridge.onQuizFinished(JSON.stringify(resultPayload));
-    } else {
-        alert(`Sınaq bitdi! Nəticəniz: ${score} / ${total}`);
     }
 
-    quizContainer.classList.add("hidden");
-    searchSection.classList.remove("hidden");
+    // Nəticəni birbaşa ekranda göstərmək üçün interfeys
+    quizContainer.innerHTML = `
+        <div style="text-align: center; color: white; padding: 20px;">
+            <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 12px; color: #a855f7;">🎉 Sınaq Tamamlandı!</h2>
+            <div style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+                <p style="font-size: 18px; margin-bottom: 6px;">Ad Soyad: <b>${studentInfo.name} ${studentInfo.surname} (${studentInfo.class})</b></p>
+                <p style="font-size: 20px; font-weight: bold; color: #4ade80;">Nəticə: ${score} / ${total}</p>
+            </div>
+            <button onclick="location.reload()" style="background: #7e22ce; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">Yeni Sınaq</button>
+        </div>
+    `;
 }
