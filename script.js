@@ -9,37 +9,41 @@ const fetchQuizListBtn = document.getElementById("fetchQuizListBtn");
 const quizListContainer = document.getElementById("quizListContainer");
 const loadQuizByIdBtn = document.getElementById("loadQuizByIdBtn");
 const quizIdInput = document.getElementById("quizIdInput");
+const searchSection = document.getElementById("searchSection");
 const quizContainer = document.getElementById("quizContainer");
 const loading = document.getElementById("loading");
 const quizTitle = document.getElementById("quizTitle");
 const questionBox = document.getElementById("questionBox");
 const prevQuestionBtn = document.getElementById("prevQuestionBtn");
 const nextQuestionBtn = document.getElementById("nextQuestionBtn");
+const timerBox = document.getElementById("timerBox");
+const timeLeftSpan = document.getElementById("timeLeft");
 
 let currentQuizData = [];
 let currentQuestionIndex = 0;
 let userAnswers = {};
+let timerInterval = null;
 
 fetchQuizListBtn.addEventListener("click", async () => {
     quizListContainer.innerHTML = "<p class='loading'>Siyahı yüklənir...</p>";
     try {
         const { data, error } = await supabase
             .from('quizzes')
-            .select('id, title, created_at')
+            .select('id, title, created_at, duration')
             .order('created_at', { ascending: false });
 
         if (error) throw error;
 
         quizListContainer.innerHTML = "";
         if (!data || data.length === 0) {
-            quizListContainer.innerHTML = "<p style='color: #94a3b8; font-size: 13px;'>Hələ ki heç bir test yoxdur.</p>";
+            quizListContainer.innerHTML = "<p style='color: #c084fc; font-size: 13px;'>Hələ ki heç bir test yoxdur.</p>";
             return;
         }
 
         data.forEach(q => {
             const item = document.createElement("div");
             item.className = "quiz-list-item";
-            item.innerHTML = `<span><b>#${q.id}</b> - ${q.title}</span> <span style="font-size: 11px; color: #94a3b8;">${new Date(q.created_at).toLocaleDateString()}</span>`;
+            item.innerHTML = `<span><b>#${q.id}</b> - ${q.title}</span> <span style="font-size: 11px; color: #c084fc;">${q.duration ? q.duration + ' dəq' : ''}</span>`;
             item.onclick = () => loadQuizFromDatabase(q.id);
             quizListContainer.appendChild(item);
         });
@@ -56,12 +60,11 @@ loadQuizByIdBtn.addEventListener("click", () => {
 
 async function loadQuizFromDatabase(quizId) {
     loading.classList.remove("hidden");
-    quizContainer.classList.add("hidden");
 
     try {
         const { data, error } = await supabase
             .from('quizzes')
-            .select('title, questions_data')
+            .select('title, questions_data, duration')
             .eq('id', quizId)
             .single();
 
@@ -76,19 +79,50 @@ async function loadQuizFromDatabase(quizId) {
 
         currentQuizData = Array.isArray(parsedData) ? parsedData : [];
         if (currentQuizData.length === 0) {
-            throw new Error("Bu testdə suallar mövcud deyil və ya formatı səhvdir.");
+            throw new Error("Bu testdə suallar mövcud deyil.");
         }
 
         currentQuestionIndex = 0;
         userAnswers = {};
 
-        renderQuestion();
+        // Axtarış panelini gizlət, test ekranını göstər
+        searchSection.classList.add("hidden");
         quizContainer.classList.remove("hidden");
+
+        renderQuestion();
+
+        // Əgər bazada vaxt (duration) təyin edilibsə geri sayımı başlat
+        if (data.duration && data.duration > 0) {
+            startTimer(data.duration * 60);
+        } else {
+            timerBox.classList.add("hidden");
+        }
+
     } catch (err) {
         alert("Xəta: " + err.message);
     } finally {
         loading.classList.add("hidden");
     }
+}
+
+function startTimer(durationInSeconds) {
+    let remainingTime = durationInSeconds;
+    timerBox.classList.remove("hidden");
+
+    if (timerInterval) clearInterval(timerInterval);
+
+    timerInterval = setInterval(() => {
+        let minutes = Math.floor(remainingTime / 60);
+        let seconds = remainingTime % 60;
+        timeLeftSpan.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+        if (remainingTime <= 0) {
+            clearInterval(timerInterval);
+            alert("Vaxt bitdi!");
+            showResults();
+        }
+        remainingTime--;
+    }, 1000);
 }
 
 function renderQuestion() {
@@ -97,7 +131,6 @@ function renderQuestion() {
     const q = currentQuizData[currentQuestionIndex];
     let optionsHtml = "";
 
-    // Bütün mümkün açarları dəstəkləyən variant yoxlaması (options, choices və s.)
     const rawOptions = q.options || q.choices || q.variants || [];
     const options = Array.isArray(rawOptions) ? rawOptions : [];
 
@@ -106,13 +139,12 @@ function renderQuestion() {
         optionsHtml += `<button class="option-btn ${isSelected}" onclick="selectOption(${index})">${opt}</button>`;
     });
 
-    // Sual mətninin hansı açar adında olmasından asılı olmayaraq tapılması
     const questionText = q.question || q.text || q.prompt || q.title || (typeof q === 'string' ? q : null);
 
     questionBox.innerHTML = `
-        <p style="margin-bottom: 10px; font-weight: 600; font-size: 14px; color: #a5b4fc;">Sual ${currentQuestionIndex + 1} / ${currentQuizData.length}</p>
-        <p style="margin-bottom: 14px;">${questionText || JSON.stringify(q)}</p>
-        ${optionsHtml.length > 0 ? optionsHtml : "<p style='color: #ef4444;'>Bu sual üçün variantlar tapılmadı.</p>"}
+        <p style="margin-bottom: 10px; font-weight: 600; font-size: 14px; color: #d8b4fe;">Sual ${currentQuestionIndex + 1} / ${currentQuizData.length}</p>
+        <p style="margin-bottom: 14px;">${questionText || ""}</p>
+        ${optionsHtml}
     `;
 
     prevQuestionBtn.style.display = currentQuestionIndex === 0 ? "none" : "block";
@@ -141,20 +173,42 @@ prevQuestionBtn.addEventListener("click", () => {
 });
 
 function showResults() {
+    if (timerInterval) clearInterval(timerInterval);
+
     let correctCount = 0;
+    let details = [];
+
     currentQuizData.forEach((q, idx) => {
-        if (userAnswers[idx] === q.correctAnswer) {
-            correctCount++;
-        }
+        const userAns = userAnswers[idx];
+        const isCorrect = userAns === q.correctAnswer;
+        if (isCorrect) correctCount++;
+
+        details.push({
+            questionIndex: idx + 1,
+            userAnswer: userAns !== undefined ? q.options[userAns] : "Cavablanmayıb",
+            isCorrect: isCorrect
+        });
     });
+
+    // Nəticələrin Android tətbiqə ötürülməsi
+    const resultPayload = {
+        score: correctCount,
+        total: currentQuizData.length,
+        details: details
+    };
+
+    if (window.AndroidBridge && typeof window.AndroidBridge.onQuizFinished === 'function') {
+        window.AndroidBridge.onQuizFinished(JSON.stringify(resultPayload));
+    }
 
     questionBox.innerHTML = `
         <div style="text-align: center; padding: 15px;">
             <h3>🎉 Test Tamamlandı!</h3>
             <p style="font-size: 16px; margin: 12px 0;">Nəticəniz: <b>${correctCount}</b> / ${currentQuizData.length}</p>
-            <button class="btn primary-btn" onclick="location.reload()">Yeni Test Seç</button>
+            <button class="btn primary-btn" onclick="location.reload()">Yeni Testə Başla</button>
         </div>
     `;
     prevQuestionBtn.style.display = "none";
     nextQuestionBtn.style.display = "none";
+    timerBox.classList.add("hidden");
 }
