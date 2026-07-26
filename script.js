@@ -414,13 +414,15 @@ async function renderStudentResultsView() {
                 .select('*')
                 .eq('student_name', currentStudent.name)
                 .eq('student_surname', currentStudent.surname),
-            supabase.from('quizzes').select('id, title')
+            supabase.from('quizzes').select('id, title, questions_data, correct_answers')
         ]);
 
         const quizMap = {};
+        const quizFullDataMap = {};
         if (quizzes) {
             quizzes.forEach(q => {
                 quizMap[q.id] = q.title;
+                quizFullDataMap[q.id] = q;
             });
         }
 
@@ -471,14 +473,120 @@ async function renderStudentResultsView() {
                         </div>
                     </div>
                 </div>
+                <button data-quizid="${res.quiz_id}" data-resultid="${res.id}" class="reviewDetailsBtn" style="width: 100%; padding: 8px; background: rgba(126, 34, 206, 0.3); border: 1px solid rgba(168, 85, 247, 0.4); color: #d8b4fe; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.2s;">🔍 Suallara Bax</button>
             `;
 
             container.appendChild(cardDiv);
         });
 
+        document.querySelectorAll('.reviewDetailsBtn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const quizId = e.target.getAttribute('data-quizid');
+                const quizObj = quizFullDataMap[quizId];
+                const resItem = results.find(r => r.id == e.target.getAttribute('data-resultid'));
+                if (quizObj && resItem) {
+                    renderDetailedReview(quizObj, resItem);
+                } else {
+                    alert("Məlumatı tapmaq mümkün olmadı.");
+                }
+            });
+        });
+
     } catch (err) {
         document.getElementById('resultsContainer').innerHTML = `<p style="text-align: center; color: #f87171; grid-column: 1 / -1;">Nəticələri yükləmək mümkün olmadı.</p>`;
     }
+}
+
+function renderDetailedReview(quizObj, resultItem) {
+    let questions = quizObj.questions_data;
+    if (typeof questions === 'string') {
+        try { questions = JSON.parse(questions); } catch(e) {}
+    }
+
+    let details = resultItem.details_json;
+    if (typeof details === 'string') {
+        try { details = JSON.parse(details); } catch(e) {}
+    }
+
+    let correctAnswers = quizObj.correct_answers;
+    if (typeof correctAnswers === 'string') {
+        try { correctAnswers = JSON.parse(correctAnswers); } catch(e) {}
+    }
+
+    let reviewHtml = `
+        <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; justify-content: center;">
+            <div style="width: 100%; max-width: 600px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="font-size: 18px; color: #d8b4fe; margin: 0;">📋 Sınaq İcmalı: ${quizObj.title || 'Test'}</h2>
+                    <button id="backToResultsBtn" style="padding: 8px 14px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;">Geri</button>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+    `;
+
+    questions.forEach((q, idx) => {
+        const options = q.options || q.choices || q.variants || [];
+        const questionText = q.question || q.text || q.prompt || q.title || (typeof q === 'string' ? q : "");
+        
+        const detailItem = details ? details.find(d => d.questionIndex === idx + 1) : null;
+        const userAnsText = detailItem ? detailItem.userAnswer : "Cavabsız";
+        const isCorrect = detailItem ? detailItem.isCorrect : false;
+
+        let correctAnsText = "Təyin olunmayıb";
+        if (correctAnswers && Array.isArray(correctAnswers) && correctAnswers[idx]) {
+            const cIdx = correctAnswers[idx].correctAnswerIndex !== undefined 
+                ? correctAnswers[idx].correctAnswerIndex 
+                : (correctAnswers[idx].correctAnswer !== undefined ? correctAnswers[idx].correctAnswer : null);
+            if (cIdx !== null && options[cIdx]) {
+                correctAnsText = options[cIdx];
+            } else if (correctAnswers[idx].correctAnswer) {
+                correctAnsText = correctAnswers[idx].correctAnswer;
+            }
+        } else if (q.correctAnswer !== undefined && options[q.correctAnswer]) {
+            correctAnsText = options[q.correctAnswer];
+        }
+
+        let optionsHtml = "";
+        options.forEach((opt, oIdx) => {
+            let optStyle = "background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white;";
+            const isUserChoice = (userAnsText === opt);
+            const isCorrectChoice = (correctAnsText === opt);
+
+            if (isCorrectChoice) {
+                optStyle = "background: rgba(34, 197, 94, 0.2); border: 1px solid #22c55e; color: #86efac; font-weight: bold;";
+            } else if (isUserChoice && !isCorrect) {
+                optStyle = "background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; font-weight: bold;";
+            }
+
+            optionsHtml += `<div style="padding: 10px 14px; margin-bottom: 6px; border-radius: 8px; font-size: 14px; ${optStyle}">${opt}</div>`;
+        });
+
+        const statusBadge = isCorrect 
+            ? `<span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold;">Düzgün ✅</span>`
+            : `<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold;">Səhv ❌</span>`;
+
+        reviewHtml += `
+            <div style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 18px; border-radius: 14px; box-sizing: border-box;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 12px; font-weight: 600; color: #d8b4fe;">Sual ${idx + 1}</span>
+                    ${statusBadge}
+                </div>
+                <p style="font-size: 15px; margin-bottom: 12px; color: #f1f5f9;">${questionText}</p>
+                <div style="margin-bottom: 10px;">${optionsHtml}</div>
+                <div style="font-size: 13px; color: #cbd5e1; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px; margin-top: 8px;">
+                    Sizin cavab: <b style="color: ${isCorrect ? '#22c55e' : '#ef4444'};">${userAnsText}</b> | Düzgün cavab: <b style="color: #22c55e;">${correctAnsText}</b>
+                </div>
+            </div>
+        `;
+    });
+
+    reviewHtml += `
+                </div>
+            </div>
+        </div>
+    `;
+
+    appContainer.innerHTML = reviewHtml;
+    document.getElementById('backToResultsBtn').addEventListener('click', renderStudentResultsView);
 }
 
 function renderChangePasswordModal() {
