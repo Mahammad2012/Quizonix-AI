@@ -90,8 +90,7 @@ function createPasswordFieldHTML(id, placeholder) {
     return `
         <div style="position: relative; width: 100%; margin-bottom: 14px;">
             <input type="password" id="${id}" placeholder="${placeholder}" required style="width: 100%; padding: 12px 45px 12px 45px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; font-size: 14px; outline: none; box-sizing: border-box; text-align: center;">
-            <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.5); font-size: 14px; user-select: none;">...</span>
-            <span id="toggle_${id}" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 13px; font-weight: 600; background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 6px; user-select: none; color: #d8b4fe;" title="Şifrəni göstər/gizlət">123</span>
+            <span id="toggle_${id}" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 13px; font-weight: 600; background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 6px; user-select: none; color: #d8b4fe;" title="Şifrəni göstər/gizlət">👁️</span>
         </div>
     `;
 }
@@ -105,11 +104,9 @@ function attachPasswordToggle(id) {
             if (input.type === "password") {
                 input.type = "text";
                 toggle.style.background = "#7e22ce";
-                toggle.style.color = "white";
             } else {
                 input.type = "password";
                 toggle.style.background = "rgba(255,255,255,0.1)";
-                toggle.style.color = "#d8b4fe";
             }
         });
     }
@@ -127,7 +124,7 @@ function showLoadingScreen(message, callback) {
             @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         </style>
     `;
-    setTimeout(callback, 1500);
+    setTimeout(callback, 1000);
 }
 
 function renderLoginForm() {
@@ -148,7 +145,7 @@ function renderLoginForm() {
         const surname = document.getElementById('loginSurname').value.trim();
         const password = document.getElementById('loginPassword').value.trim();
 
-        showLoadingScreen("Yüklənir...", async () => {
+        showLoadingScreen("Giriş edilir...", async () => {
             try {
                 const { data, error } = await supabase
                     .from('students_account')
@@ -195,7 +192,7 @@ function renderRegisterForm() {
         const student_class = document.getElementById('regClass').value.trim();
         const password = document.getElementById('regPassword').value.trim();
 
-        showLoadingScreen("Yüklənir...", async () => {
+        showLoadingScreen("Qeydiyyat aparılır...", async () => {
             try {
                 const { data: existing } = await supabase
                     .from('students_account')
@@ -258,15 +255,9 @@ async function renderStudentDashboard() {
         
         <div id="profileDropdown" style="display: none; position: fixed; background: rgba(20, 15, 40, 0.98); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; width: 200px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); z-index: 99999; overflow: hidden;">
             <div style="position: relative; z-index: 2;">
-                <button id="menuMyResults" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; transition: background 0.2s, color 0.2s;">
-                    <img src="https://api.iconify.design/lucide:bar-chart-3.svg?color=%23a855f7" width="18" height="18" alt="Nəticələr" style="flex-shrink: 0;" /> Nəticələrim
-                </button>
-                <button id="menuChangePassword" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; transition: background 0.2s, color 0.2s;">
-                    <img src="https://api.iconify.design/lucide:key-round.svg?color=%23a855f7" width="18" height="18" alt="Şifrə" style="flex-shrink: 0;" /> Şifrəni dəyişdir
-                </button>
-                <button id="menuLogout" style="width: 100%; padding: 12px 16px; background: none; border: none; color: #f87171; text-align: left; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 10px; transition: background 0.2s, color 0.2s;">
-                    <img src="https://api.iconify.design/lucide:log-out.svg?color=%23f87171" width="18" height="18" alt="Çıxış" style="flex-shrink: 0;" /> Çıxış et
-                </button>
+                <button id="menuMyResults" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px;">📊 Nəticələrim</button>
+                <button id="menuChangePassword" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px;">🔑 Şifrəni dəyişdir</button>
+                <button id="menuLogout" style="width: 100%; padding: 12px 16px; background: none; border: none; color: #f87171; text-align: left; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 10px;">🚪 Çıxış et</button>
             </div>
         </div>
 
@@ -286,8 +277,6 @@ async function renderStudentDashboard() {
                 border-left-color: transparent;
                 animation: geminiGlowRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
                 pointer-events: none;
-                filter: drop-shadow(0 0 8px rgba(234, 179, 8, 0.7));
-                z-index: 1;
                 display: none;
             }
             .mr-profile-container:hover .mr-spinning-border {
@@ -299,34 +288,9 @@ async function renderStudentDashboard() {
     const profileCircle = document.getElementById('profileCircle');
     const profileDropdown = document.getElementById('profileDropdown');
 
-    const menuMyResults = document.getElementById('menuMyResults');
-    const menuChangePassword = document.getElementById('menuChangePassword');
-    const menuLogout = document.getElementById('menuLogout');
-
-    [menuMyResults, menuChangePassword].forEach(btn => {
-        btn.addEventListener('mouseenter', () => {
-            btn.style.background = '#7e22ce';
-            btn.style.color = '#ffffff';
-        });
-        btn.addEventListener('mouseleave', () => {
-            btn.style.background = 'none';
-            btn.style.color = '#ffffff';
-        });
-    });
-
-    menuLogout.addEventListener('mouseenter', () => {
-        menuLogout.style.background = '#dc2626';
-        menuLogout.style.color = '#ffffff';
-    });
-    menuLogout.addEventListener('mouseleave', () => {
-        menuLogout.style.background = 'none';
-        menuLogout.style.color = '#f87171';
-    });
-
     profileCircle.addEventListener('click', (e) => {
         e.stopPropagation();
         const rect = profileCircle.getBoundingClientRect();
-        
         if (profileDropdown.style.display === 'block') {
             profileDropdown.style.display = 'none';
         } else {
@@ -336,22 +300,13 @@ async function renderStudentDashboard() {
         }
     });
 
-    document.addEventListener('click', (e) => {
-        if (!profileCircle.contains(e.target) && !profileDropdown.contains(e.target)) {
-            profileDropdown.style.display = 'none';
-        }
+    document.addEventListener('click', () => {
+        profileDropdown.style.display = 'none';
     });
 
-    document.getElementById('menuMyResults').addEventListener('click', () => {
-        profileDropdown.style.display = 'none';
-        renderStudentResultsView();
-    });
-    document.getElementById('menuChangePassword').addEventListener('click', () => {
-        profileDropdown.style.display = 'none';
-        renderChangePasswordModal();
-    });
+    document.getElementById('menuMyResults').addEventListener('click', renderStudentResultsView);
+    document.getElementById('menuChangePassword').addEventListener('click', renderChangePasswordModal);
     document.getElementById('menuLogout').addEventListener('click', () => {
-        profileDropdown.style.display = 'none';
         localStorage.removeItem('aquarius_current_student');
         currentStudent = null;
         renderAuthScreen();
@@ -375,7 +330,7 @@ async function renderStudentDashboard() {
                     <h4 style="font-size: 15px; font-weight: 600; color: #f1f5f9; margin: 0 0 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${quiz.title || `Test #${quiz.id}`}</h4>
                     <p style="font-size: 13px; color: #a78bfa; margin: 0;">⏱️ Müddət: ${quiz.duration ? quiz.duration + ' dəqiqə' : 'Məhdudiyyət yoxdur'}</p>
                 </div>
-                <button data-id="${quiz.id}" class="startQuizBtn" style="padding: 8px 16px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; white-space: nowrap; flex-shrink: 0;">Sınağa Başla</button>
+                <button data-id="${quiz.id}" class="startQuizBtn" style="padding: 8px 16px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px;">Başla</button>
             `;
             listContainer.appendChild(card);
         });
@@ -419,9 +374,7 @@ async function renderStudentResultsView() {
 
         const quizMap = {};
         if (quizzes) {
-            quizzes.forEach(q => {
-                quizMap[q.id] = q.title;
-            });
+            quizzes.forEach(q => { quizMap[q.id] = q.title; });
         }
 
         const container = document.getElementById('resultsContainer');
@@ -433,49 +386,19 @@ async function renderStudentResultsView() {
         container.innerHTML = '';
         results.forEach((res) => {
             const percent = Math.round((res.score / res.total) * 100);
-
-            let detailsParsed = [];
-            try {
-                detailsParsed = typeof res.details_json === 'string' ? JSON.parse(res.details_json) : res.details_json;
-            } catch(e) {}
-
-            let correctCount = res.score;
-            let incorrectCount = res.total - res.score;
-            let blankCount = 0;
-
-            if (Array.isArray(detailsParsed)) {
-                correctCount = detailsParsed.filter(d => d.isCorrect).length;
-                incorrectCount = detailsParsed.filter(d => !d.isCorrect && d.userAnswer !== "Cavabsız").length;
-                blankCount = detailsParsed.filter(d => d.userAnswer === "Cavabsız").length;
-            }
-
             const quizTitle = quizMap[res.quiz_id] || `Sınaq ${res.quiz_id}`;
 
             const cardDiv = document.createElement('div');
-            cardDiv.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; box-sizing: border-box; width: 100%; min-height: 160px;";
-
+            cardDiv.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; box-sizing: border-box; width: 100%;";
             cardDiv.innerHTML = `
                 <div>
                     <h4 style="font-size: 16px; font-weight: 600; color: #f1f5f9; margin: 0 0 8px 0;">${quizTitle}</h4>
                     <p style="font-size: 14px; color: #cbd5e1; margin: 0 0 4px 0;">Nəticə: <b>${res.score} / ${res.total}</b></p>
                 </div>
-                <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
-                    <div style="font-size: 12px; color: #94a3b8; display: flex; flex-direction: column; gap: 4px;">
-                        <span style="color: #22c55e;">✅ Düz: ${correctCount}</span>
-                        <span style="color: #ef4444;">❌ Səhv: ${incorrectCount}</span>
-                        <span style="color: #eab308;">⚪ Boş: ${blankCount}</span>
-                    </div>
-                    <div style="width: 55px; height: 55px; border-radius: 50%; background: conic-gradient(#22c55e ${percent}%, #eab308 ${percent}% 80%, #ef4444 0%); display: flex; justify-content: center; align-items: center; position: relative; flex-shrink: 0;">
-                        <div style="width: 43px; height: 43px; background: #18152e; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 12px; font-weight: bold; color: #d8b4fe;">
-                            ${percent}%
-                        </div>
-                    </div>
-                </div>
+                <div style="text-align: right; font-weight: bold; color: #22c55e; font-size: 16px;">${percent}%</div>
             `;
-
             container.appendChild(cardDiv);
         });
-
     } catch (err) {
         document.getElementById('resultsContainer').innerHTML = `<p style="text-align: center; color: #f87171; grid-column: 1 / -1;">Nəticələri yükləmək mümkün olmadı.</p>`;
     }
@@ -670,9 +593,7 @@ async function showResults() {
 
         let serverCorrectAnswers = quizData.correct_answers;
         if (typeof serverCorrectAnswers === 'string') {
-            try {
-                serverCorrectAnswers = JSON.parse(serverCorrectAnswers);
-            } catch (e) {}
+            try { serverCorrectAnswers = JSON.parse(serverCorrectAnswers); } catch (e) {}
         }
 
         currentQuizData.forEach((q, idx) => {
@@ -703,6 +624,7 @@ async function showResults() {
             });
         });
 
+        // JSONB sütunları üçün obyekt/massiv birbaşa ötürülür (400 Bad Request xətasını aradan qaldırır)
         await supabase.from('student_results').insert([
             {
                 quiz_id: parseInt(currentQuizId) || 0,
@@ -711,8 +633,8 @@ async function showResults() {
                 student_class: currentStudent.student_class,
                 score: score,
                 total: total,
-                details_json: JSON.stringify(details),
-                correct_answers: JSON.stringify(correctAnswersData)
+                details_json: details,
+                correct_answers: correctAnswersData
             }
         ]);
     } catch (err) {
@@ -728,12 +650,7 @@ async function showResults() {
                 <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; gap: 12px;">
                     <p style="font-size: 15px; margin: 0;">İştirakçı: <b>${currentStudent.name} ${currentStudent.surname}</b></p>
                     <p style="font-size: 18px; font-weight: bold; color: #22c55e; margin: 0;">Nəticə: ${score} / ${total}</p>
-                    
-                    <div style="width: 70px; height: 70px; border-radius: 50%; background: conic-gradient(#22c55e ${percent}%, rgba(255,255,255,0.1) 0%); display: flex; justify-content: center; align-items: center; position: relative;">
-                        <div style="width: 54px; height: 54px; background: #18152e; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: bold; color: #d8b4fe;">
-                            ${percent}%
-                        </div>
-                    </div>
+                    <div style="font-size: 20px; font-weight: bold; color: #d8b4fe;">${percent}%</div>
                 </div>
                 <button id="backToCabinetBtn" style="padding: 12px 24px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%;">Kabinetə qayıt</button>
             </div>
