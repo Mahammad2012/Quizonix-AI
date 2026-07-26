@@ -549,7 +549,7 @@ async function loadAndStartQuiz(quizId) {
     try {
         const { data, error } = await supabase
             .from('quizzes')
-            .select('title, questions_data, duration')
+            .select('title, questions_data, duration, correct_answers')
             .eq('id', quizId)
             .single();
 
@@ -659,28 +659,50 @@ async function showResults() {
     const details = [];
     const correctAnswersData = [];
 
-    currentQuizData.forEach((q, idx) => {
-        const userAnsIdx = userAnswers[idx];
-        const correctAnsIdx = q.correctAnswer !== undefined ? q.correctAnswer : 0;
-        const isCorrect = userAnsIdx === correctAnsIdx;
-        
-        if (isCorrect) score++;
-
-        const rawOptions = q.options || q.choices || q.variants || [];
-        
-        details.push({
-            questionIndex: idx + 1,
-            userAnswer: userAnsIdx !== undefined ? (rawOptions[userAnsIdx] || "Cavab seçilib") : "Cavabsız",
-            isCorrect: isCorrect
-        });
-
-        correctAnswersData.push({
-            questionIndex: idx + 1,
-            correctAnswer: rawOptions[correctAnsIdx] || "Təyin olunmayıb"
-        });
-    });
-
     try {
+        const { data: quizData, error: quizError } = await supabase
+            .from('quizzes')
+            .select('correct_answers')
+            .eq('id', currentQuizId)
+            .single();
+
+        if (quizError) throw quizError;
+
+        let serverCorrectAnswers = quizData.correct_answers;
+        if (typeof serverCorrectAnswers === 'string') {
+            try {
+                serverCorrectAnswers = JSON.parse(serverCorrectAnswers);
+            } catch (e) {}
+        }
+
+        currentQuizData.forEach((q, idx) => {
+            const userAnsIdx = userAnswers[idx];
+            const rawOptions = q.options || q.choices || q.variants || [];
+            
+            let correctAnsIdx = 0;
+            if (serverCorrectAnswers && Array.isArray(serverCorrectAnswers) && serverCorrectAnswers[idx]) {
+                correctAnsIdx = serverCorrectAnswers[idx].correctAnswerIndex !== undefined 
+                    ? serverCorrectAnswers[idx].correctAnswerIndex 
+                    : (serverCorrectAnswers[idx].correctAnswer !== undefined ? serverCorrectAnswers[idx].correctAnswer : 0);
+            } else {
+                correctAnsIdx = q.correctAnswer !== undefined ? q.correctAnswer : 0;
+            }
+
+            const isCorrect = userAnsIdx === parseInt(correctAnsIdx);
+            if (isCorrect) score++;
+
+            details.push({
+                questionIndex: idx + 1,
+                userAnswer: userAnsIdx !== undefined ? (rawOptions[userAnsIdx] || "Cavab seçilib") : "Cavabsız",
+                isCorrect: isCorrect
+            });
+
+            correctAnswersData.push({
+                questionIndex: idx + 1,
+                correctAnswer: rawOptions[correctAnsIdx] || "Təyin olunmayıb"
+            });
+        });
+
         await supabase.from('student_results').insert([
             {
                 quiz_id: parseInt(currentQuizId) || 0,
@@ -694,7 +716,7 @@ async function showResults() {
             }
         ]);
     } catch (err) {
-        console.error("Nəticə yazılarkən xəta:", err);
+        console.error("Nəticə yoxlanılarkən və ya yazılarkən xəta:", err);
     }
 
     const percent = Math.round((score / total) * 100);
