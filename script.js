@@ -64,7 +64,6 @@ function renderAuthScreen() {
     renderLoginForm();
 }
 
-// Ad və Soyad üçün mərkəzləşdirilmiş input üslubu
 function inputStyle() {
     return "width: 100%; padding: 12px 14px; margin-bottom: 14px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; font-size: 14px; outline: none; box-sizing: border-box; text-align: center;";
 }
@@ -220,21 +219,15 @@ async function renderStudentDashboard() {
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; flex-direction: column; align-items: center;">
             <div style="width: 100%; max-width: 700px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); backdrop-filter: blur(12px); padding: 16px 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 24px; position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); backdrop-filter: blur(12px); padding: 16px 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 24px;">
                     <div>
                         <h2 style="font-size: 18px; color: #d8b4fe; margin: 0 0 4px 0;">Xoş gəldiniz, ${currentStudent.name} ${currentStudent.surname}</h2>
                         <p style="font-size: 13px; color: #94a3b8; margin: 0;">Sinif: ${currentStudent.student_class}</p>
                     </div>
 
-                    <div style="position: relative;">
+                    <div>
                         <div id="profileCircle" style="width: 45px; height: 45px; background: linear-gradient(135deg, #7e22ce, #a855f7); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 16px; cursor: pointer; border: 2px solid rgba(255,255,255,0.2);">
                             ${initials}
-                        </div>
-                        <!-- z-index artırıldı ki, hər zaman üstdə qalsın -->
-                        <div id="profileDropdown" style="display: none; position: absolute; right: 0; top: 55px; background: rgba(20, 15, 40, 0.98); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; width: 180px; box-shadow: 0 10px 25px rgba(0,0,0,0.7); z-index: 9999; overflow: hidden;">
-                            <button id="menuMyResults" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08);">📊 Nəticələrim</button>
-                            <button id="menuChangePassword" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08);">🔑 Şifrəni dəyişdir</button>
-                            <button id="menuLogout" style="width: 100%; padding: 12px 16px; background: none; border: none; color: #f87171; text-align: left; cursor: pointer; font-size: 14px;">🚪 Çıxış et</button>
                         </div>
                     </div>
                 </div>
@@ -245,6 +238,13 @@ async function renderStudentDashboard() {
                 </div>
             </div>
         </div>
+        
+        <!-- Dropdown menyu birbaşa global səviyyədə yerləşdirilir ki, heç bir elementin altında qalmasın -->
+        <div id="profileDropdown" style="display: none; position: fixed; background: rgba(20, 15, 40, 0.98); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; width: 180px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); z-index: 99999; overflow: hidden;">
+            <button id="menuMyResults" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08);">📊 Nəticələrim</button>
+            <button id="menuChangePassword" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08);">🔑 Şifrəni dəyişdir</button>
+            <button id="menuLogout" style="width: 100%; padding: 12px 16px; background: none; border: none; color: #f87171; text-align: left; cursor: pointer; font-size: 14px;">🚪 Çıxış et</button>
+        </div>
     `;
 
     const profileCircle = document.getElementById('profileCircle');
@@ -252,16 +252,34 @@ async function renderStudentDashboard() {
 
     profileCircle.addEventListener('click', (e) => {
         e.stopPropagation();
-        profileDropdown.style.display = profileDropdown.style.display === 'block' ? 'none' : 'block';
+        const rect = profileCircle.getBoundingClientRect();
+        
+        if (profileDropdown.style.display === 'block') {
+            profileDropdown.style.display = 'none';
+        } else {
+            // Menyunu dairənin səliqəli altında yerləşdirmək üçün koordinat hesablanır
+            profileDropdown.style.top = (rect.bottom + 8) + 'px';
+            profileDropdown.style.right = (window.innerWidth - rect.right) + 'px';
+            profileDropdown.style.display = 'block';
+        }
     });
 
-    document.addEventListener('click', () => {
+    document.addEventListener('click', (e) => {
+        if (!profileCircle.contains(e.target) && !profileDropdown.contains(e.target)) {
+            profileDropdown.style.display = 'none';
+        }
+    });
+
+    document.getElementById('menuMyResults').addEventListener('click', () => {
         profileDropdown.style.display = 'none';
+        renderStudentResultsView();
     });
-
-    document.getElementById('menuMyResults').addEventListener('click', renderStudentResultsView);
-    document.getElementById('menuChangePassword').addEventListener('click', renderChangePasswordModal);
+    document.getElementById('menuChangePassword').addEventListener('click', () => {
+        profileDropdown.style.display = 'none';
+        renderChangePasswordModal();
+    });
     document.getElementById('menuLogout').addEventListener('click', () => {
+        profileDropdown.style.display = 'none';
         currentStudent = null;
         renderAuthScreen();
     });
