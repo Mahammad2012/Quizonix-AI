@@ -4,8 +4,20 @@ const supabaseUrl = 'https://ebsqtjibhhckbciltzfb.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVic3F0amliaGhja2JjaWx0emZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5OTUyNjUsImV4cCI6MjEwMDU3MTI2NX0.FNMjDFVakfNZxp758wrIPTXQRww6p8DgipsGwMeV0do';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// DOM Elementləri
 const appContainer = document.getElementById('appContainer') || document.body;
+
+// Global ümumi səhifə fonu və sıfırlama tənzimləmələri
+function applyGlobalStyles() {
+    document.documentElement.style.height = '100%';
+    document.body.style.height = '100%';
+    document.body.style.margin = '0';
+    document.body.style.padding = '0';
+    document.body.style.background = 'linear-gradient(135deg, #0f0c29, #302b63, #24243e)';
+    document.body.style.backgroundAttachment = 'fixed';
+    document.body.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+    document.body.style.color = 'white';
+}
+applyGlobalStyles();
 
 let currentStudent = null;
 let currentQuizId = null;
@@ -15,11 +27,10 @@ let userAnswers = {};
 let timerInterval = null;
 let timeLeft = 0;
 
-// Başlanğıc ekranını render edirik (Qeydiyyat və Giriş seçimi)
 function renderAuthScreen() {
     appContainer.innerHTML = `
-        <div style="min-height: 100vh; display: flex; justify-content: center; align-items: center; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px;">
-            <div style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 20px; width: 100%; max-width: 420px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); color: white;">
+        <div style="min-height: 100vh; width: 100vw; display: flex; justify-content: center; align-items: center; box-sizing: border-box; padding: 20px;">
+            <div style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 20px; width: 100%; max-width: 420px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);">
                 <div style="text-align: center; margin-bottom: 24px;">
                     <h1 style="font-size: 26px; font-weight: 700; color: #d8b4fe; margin-bottom: 8px;">🎓 Aquarius Kviz AI</h1>
                     <p style="font-size: 14px; color: #cbd5e1;">Zəhmət olmasa hesabınıza daxil olun və ya qeydiyyatdan keçin</p>
@@ -55,11 +66,52 @@ function renderAuthScreen() {
 }
 
 function inputStyle() {
-    return "width: 100%; padding: 12px 14px; margin-bottom: 14px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; font-size: 14px; outline: none;";
+    return "width: 100%; padding: 12px 14px; margin-bottom: 14px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; font-size: 14px; outline: none; box-sizing: border-box;";
 }
 
 function buttonStyle() {
     return "width: 100%; padding: 12px; background: linear-gradient(135deg, #9333ea, #c084fc); color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; transition: 0.3s;";
+}
+
+// Göz ikonlu şifrə sahəsi yaratmaq üçün köməkçi funksiya
+function createPasswordFieldHTML(id, placeholder) {
+    return `
+        <div style="position: relative; width: 100%; margin-bottom: 14px;">
+            <input type="password" id="${id}" placeholder="${placeholder}" required style="width: 100%; padding: 12px 40px 12px 14px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; font-size: 14px; outline: none; box-sizing: border-box;">
+            <span id="toggle_${id}" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 18px; user-select: none;">👁️‍🗨️</span>
+        </div>
+    `;
+}
+
+function attachPasswordToggle(id) {
+    const input = document.getElementById(id);
+    const toggle = document.getElementById(`toggle_${id}`);
+    if(input && toggle) {
+        toggle.addEventListener('click', () => {
+            if (input.type === "password") {
+                input.type = "text";
+                toggle.textContent = "👁️";
+            } else {
+                input.type = "password";
+                toggle.textContent = "👁️‍🗨️";
+            }
+        });
+    }
+}
+
+function showLoadingScreen(message, callback) {
+    appContainer.innerHTML = `
+        <div style="min-height: 100vh; width: 100vw; display: flex; flex-direction: column; justify-content: center; align-items: center; box-sizing: border-box;">
+            <div style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 20px; text-align: center; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);">
+                <div style="border: 4px solid rgba(255, 255, 255, 0.1); border-top: 4px solid #c084fc; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px auto;"></div>
+                <h3 style="font-size: 18px; color: #d8b4fe; margin: 0;">${message}</h3>
+            </div>
+        </div>
+        <style>
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        </style>
+    `;
+    setTimeout(callback, 2000);
 }
 
 function renderLoginForm() {
@@ -68,10 +120,11 @@ function renderLoginForm() {
         <form id="loginForm">
             <input type="text" id="loginName" placeholder="Adınız" required style="${inputStyle()}">
             <input type="text" id="loginSurname" placeholder="Soyadınız" required style="${inputStyle()}">
-            <input type="password" id="loginPassword" placeholder="Şifrəniz (məsələn: P@ss123)" required style="${inputStyle()}">
+            ${createPasswordFieldHTML('loginPassword', 'Şifrəniz')}
             <button type="submit" style="${buttonStyle()}">Daxil Ol</button>
         </form>
     `;
+    attachPasswordToggle('loginPassword');
 
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -79,25 +132,29 @@ function renderLoginForm() {
         const surname = document.getElementById('loginSurname').value.trim();
         const password = document.getElementById('loginPassword').value.trim();
 
-        try {
-            const { data, error } = await supabase
-                .from('students_account')
-                .select('*')
-                .eq('name', name)
-                .eq('surname', surname)
-                .eq('password', password)
-                .single();
+        showLoadingScreen("Yüklənir...", async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('students_account')
+                    .select('*')
+                    .eq('name', name)
+                    .eq('surname', surname)
+                    .eq('password', password)
+                    .single();
 
-            if (error || !data) {
-                alert("Ad, Soyad və ya şifrə yanlışdır!");
-                return;
+                if (error || !data) {
+                    alert("Ad, Soyad və ya şifrə yanlışdır!");
+                    renderAuthScreen();
+                    return;
+                }
+
+                currentStudent = data;
+                renderStudentDashboard();
+            } catch (err) {
+                alert("Giriş zamanı xəta baş verdi.");
+                renderAuthScreen();
             }
-
-            currentStudent = data;
-            renderStudentDashboard();
-        } catch (err) {
-            alert("Giriş zamanı xəta baş verdi. Zəhmət olmasa yenidən yoxlayın.");
-        }
+        });
     });
 }
 
@@ -108,10 +165,11 @@ function renderRegisterForm() {
             <input type="text" id="regName" placeholder="Adınız" required style="${inputStyle()}">
             <input type="text" id="regSurname" placeholder="Soyadınız" required style="${inputStyle()}">
             <input type="text" id="regClass" placeholder="Sinfiniz (məsələn: 10A)" required style="${inputStyle()}">
-            <input type="password" id="regPassword" placeholder="Şifrə yarat (məsələn: P@ss123)" required style="${inputStyle()}">
+            ${createPasswordFieldHTML('regPassword', 'Şifrə yarat (məsələn: P@ss123)')}
             <button type="submit" style="${buttonStyle()}">Qeydiyyatdan Keç</button>
         </form>
     `;
+    attachPasswordToggle('regPassword');
 
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -120,48 +178,64 @@ function renderRegisterForm() {
         const student_class = document.getElementById('regClass').value.trim();
         const password = document.getElementById('regPassword').value.trim();
 
-        try {
-            // Əvvəlcə belə hesabın olub-olmadığını yoxlayaq
-            const { data: existing } = await supabase
-                .from('students_account')
-                .select('*')
-                .eq('name', name)
-                .eq('surname', surname)
-                .single();
+        showLoadingScreen("Yüklənir...", async () => {
+            try {
+                const { data: existing } = await supabase
+                    .from('students_account')
+                    .select('*')
+                    .eq('name', name)
+                    .eq('surname', surname)
+                    .single();
 
-            if (existing) {
-                alert("Bu ad və soyadla artıq hesab mövcuddur. Zəhmət olmasa daxil olun.");
-                return;
+                if (existing) {
+                    alert("Bu ad və soyadla artıq hesab mövcuddur. Zəhmət olmasa daxil olun.");
+                    renderAuthScreen();
+                    return;
+                }
+
+                const { data, error } = await supabase
+                    .from('students_account')
+                    .insert([{ name, surname, student_class, password }])
+                    .select()
+                    .single();
+
+                if (error) throw error;
+
+                currentStudent = data;
+                renderStudentDashboard();
+            } catch (err) {
+                alert("Qeydiyyat xətası: " + err.message);
+                renderAuthScreen();
             }
-
-            const { data, error } = await supabase
-                .from('students_account')
-                .insert([{ name, surname, student_class, password }])
-                .select()
-                .single();
-
-            if (error) throw error;
-
-            alert("Qeydiyyat uğurla tamamlandı! Hesabınıza daxil olursunuz.");
-            currentStudent = data;
-            renderStudentDashboard();
-        } catch (err) {
-            alert("Qeydiyyat xətası: " + err.message);
-        }
+        });
     });
 }
 
-// Şagird Kabineti (Aktiv sınaqların siyahısı)
+// Şagird Kabineti və Baş Hərf İnisialları Dropdown Menyusu
 async function renderStudentDashboard() {
+    const initials = (currentStudent.name.charAt(0) + currentStudent.surname.charAt(0)).toUpperCase();
+
     appContainer.innerHTML = `
-        <div style="min-height: 100vh; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; color: white;">
-            <div style="max-width: 700px; margin: 0 auto;">
-                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); backdrop-filter: blur(12px); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 24px;">
+        <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; flex-direction: column; align-items: center;">
+            <div style="width: 100%; max-width: 700px;">
+                <!-- Header -->
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); backdrop-filter: blur(12px); padding: 16px 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 24px; position: relative;">
                     <div>
-                        <h2 style="font-size: 20px; color: #d8b4fe; margin-bottom: 4px;">Xoş gəldiniz, ${currentStudent.name} ${currentStudent.surname}</h2>
-                        <p style="font-size: 13px; color: #94a3b8;">Sinif: ${currentStudent.student_class}</p>
+                        <h2 style="font-size: 18px; color: #d8b4fe; margin: 0 0 4px 0;">Xoş gəldiniz, ${currentStudent.name} ${currentStudent.surname}</h2>
+                        <p style="font-size: 13px; color: #94a3b8; margin: 0;">Sinif: ${currentStudent.student_class}</p>
                     </div>
-                    <button id="logoutBtn" style="padding: 8px 16px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 8px; cursor: pointer; font-weight: 600;">Çıxış</button>
+
+                    <!-- Profil İnisial Dairəsi və Menyu -->
+                    <div style="position: relative;">
+                        <div id="profileCircle" style="width: 45px; height: 45px; background: linear-gradient(135deg, #7e22ce, #a855f7); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 16px; cursor: pointer; border: 2px solid rgba(255,255,255,0.2);">
+                            ${initials}
+                        </div>
+                        <div id="profileDropdown" style="display: none; position: absolute; right: 0; top: 55px; background: rgba(20, 15, 40, 0.95); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; width: 180px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 100; overflow: hidden;">
+                            <button id="menuMyResults" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08);">📊 Nəticələrim</button>
+                            <button id="menuChangePassword" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08);">🔑 Şifrəni dəyişdir</button>
+                            <button id="menuLogout" style="width: 100%; padding: 12px 16px; background: none; border: none; color: #f87171; text-align: left; cursor: pointer; font-size: 14px;">🚪 Çıxış et</button>
+                        </div>
+                    </div>
                 </div>
 
                 <h3 style="font-size: 18px; margin-bottom: 16px; color: #e2e8f0;">📝 Mövcud Sınaqlar</h3>
@@ -172,16 +246,27 @@ async function renderStudentDashboard() {
         </div>
     `;
 
-    document.getElementById('logoutBtn').addEventListener('click', () => {
+    const profileCircle = document.getElementById('profileCircle');
+    const profileDropdown = document.getElementById('profileDropdown');
+
+    profileCircle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        profileDropdown.style.display = profileDropdown.style.display === 'block' ? 'none' : 'block';
+    });
+
+    document.addEventListener('click', () => {
+        profileDropdown.style.display = 'none';
+    });
+
+    document.getElementById('menuMyResults').addEventListener('click', renderStudentResultsView);
+    document.getElementById('menuChangePassword').addEventListener('click', renderChangePasswordModal);
+    document.getElementById('menuLogout').addEventListener('click', () => {
         currentStudent = null;
         renderAuthScreen();
     });
 
     try {
-        const { data: quizzes, error } = await supabase
-            .from('quizzes')
-            .select('id, title, duration');
-
+        const { data: quizzes, error } = await supabase.from('quizzes').select('id, title, duration');
         const listContainer = document.getElementById('quizzesList');
 
         if (error || !quizzes || quizzes.length === 0) {
@@ -192,11 +277,11 @@ async function renderStudentDashboard() {
         listContainer.innerHTML = '';
         quizzes.forEach(quiz => {
             const card = document.createElement('div');
-            card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 18px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; transition: 0.3s;";
+            card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 18px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center;";
             card.innerHTML = `
                 <div>
-                    <h4 style="font-size: 16px; font-weight: 600; color: #f1f5f9; margin-bottom: 4px;">${quiz.title || `Test #${quiz.id}`}</h4>
-                    <p style="font-size: 13px; color: #a78bfa;">⏱️ Müddət: ${quiz.duration ? quiz.duration + ' dəqiqə' : 'Məhdudiyyət yoxdur'}</p>
+                    <h4 style="font-size: 16px; font-weight: 600; color: #f1f5f9; margin: 0 0 4px 0;">${quiz.title || `Test #${quiz.id}`}</h4>
+                    <p style="font-size: 13px; color: #a78bfa; margin: 0;">⏱️ Müddət: ${quiz.duration ? quiz.duration + ' dəqiqə' : 'Məhdudiyyət yoxdur'}</p>
                 </div>
                 <button data-id="${quiz.id}" class="startQuizBtn" style="padding: 10px 20px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">Sınağa Başla</button>
             `;
@@ -205,23 +290,149 @@ async function renderStudentDashboard() {
 
         document.querySelectorAll('.startQuizBtn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const quizId = e.target.getAttribute('data-id');
-                loadAndStartQuiz(quizId);
+                loadAndStartQuiz(e.target.getAttribute('data-id'));
             });
         });
-
     } catch (err) {
         document.getElementById('quizzesList').innerHTML = `<p style="text-align: center; color: #f87171;">Sınaqları yükləmək mümkün olmadı.</p>`;
     }
 }
 
+// Şagirdin Şəxsi Nəticələri və Dairəvi Diaqram Analitikası
+async function renderStudentResultsView() {
+    appContainer.innerHTML = `
+        <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; flex-direction: column; align-items: center;">
+            <div style="width: 100%; max-width: 700px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <h2 style="font-size: 20px; color: #d8b4fe; margin: 0;">📊 Sənin Nəticələrin</h2>
+                    <button id="backToDashboard" style="padding: 8px 16px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 8px; cursor: pointer; font-weight: 600;">Kabinetə qayıt</button>
+                </div>
+                <div id="resultsContainer" style="display: flex; flex-direction: column; gap: 16px;">
+                    <p style="text-align: center; color: #94a3b8; padding: 20px;">Nəticələr yüklənir...</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('backToDashboard').addEventListener('click', renderStudentDashboard);
+
+    try {
+        const { data: results, error } = await supabase
+            .from('student_results')
+            .select('*')
+            .eq('student_name', currentStudent.name)
+            .eq('student_surname', currentStudent.surname);
+
+        const container = document.getElementById('resultsContainer');
+        if (error || !results || results.length === 0) {
+            container.innerHTML = `<p style="text-align: center; color: #94a3b8; background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px;">Hələ ki, heç bir sınaq nəticəniz yoxdur.</p>`;
+            return;
+        }
+
+        container.innerHTML = '';
+        results.forEach(res => {
+            const percent = Math.round((res.score / res.total) * 100);
+            const incorrect = res.total - res.score; // sadələşdirilmiş hesablama və ya details_json-dan
+
+            let detailsParsed = [];
+            try {
+                detailsParsed = typeof res.details_json === 'string' ? JSON.parse(res.details_json) : res.details_json;
+            } catch(e) {}
+
+            let correctCount = res.score;
+            let incorrectCount = 0;
+            let blankCount = 0;
+
+            if (Array.isArray(detailsParsed)) {
+                correctCount = detailsParsed.filter(d => d.isCorrect).length;
+                incorrectCount = detailsParsed.filter(d => !d.isCorrect && d.userAnswer !== "Cavabsız").length;
+                blankCount = detailsParsed.filter(d => d.userAnswer === "Cavabsız").length;
+            } else {
+                incorrectCount = incorrect;
+            }
+
+            const card = document.createElement('div');
+            card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; gap: 20px;";
+            
+            card.innerHTML = `
+                <div>
+                    <h4 style="font-size: 16px; font-weight: 600; color: #f1f5f9; margin: 0 0 8px 0;">Test ID: #${res.quiz_id}</h4>
+                    <p style="font-size: 14px; color: #cbd5e1; margin: 0 0 4px 0;">Nəticə: <b>${res.score} / ${res.total}</b></p>
+                    <div style="font-size: 12px; color: #94a3b8; display: flex; gap: 12px; margin-top: 8px;">
+                        <span style="color: #4ade80;">✅ Düz: ${correctCount}</span>
+                        <span style="color: #f87171;">❌ Səhv: ${incorrectCount}</span>
+                        <span style="color: #fbbf24;">⚪ Boş: ${blankCount}</span>
+                    </div>
+                </div>
+                <!-- Dairəvi Faiz İndikatoru -->
+                <div style="width: 65px; height: 65px; border-radius: 50%; background: conic-gradient(#7e22ce ${percent}%, rgba(255,255,255,0.1) 0%); display: flex; justify-content: center; align-items: center; position: relative;">
+                    <div style="width: 53px; height: 53px; background: #18152e; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 13px; font-weight: bold; color: #d8b4fe;">
+                        ${percent}%
+                    </div>
+                </div>
+            `;
+            container.appendChild(card);
+        });
+
+    } catch (err) {
+        document.getElementById('resultsContainer').innerHTML = `<p style="text-align: center; color: #f87171;">Nəticələri yükləmək mümkün olmadı.</p>`;
+    }
+}
+
+// Şifrəni dəyişdirmə interfeysi
+function renderChangePasswordModal() {
+    appContainer.innerHTML = `
+        <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; justify-content: center; align-items: center;">
+            <div style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 20px; width: 100%; max-width: 400px;">
+                <h3 style="font-size: 20px; color: #d8b4fe; margin-top: 0; margin-bottom: 20px; text-align: center;">🔑 Şifrəni Dəyişdir</h3>
+                <form id="changePassForm">
+                    ${createPasswordFieldHTML('oldPass', 'Köhnə şifrəniz')}
+                    ${createPasswordFieldHTML('newPass', 'Yeni şifrəniz')}
+                    <button type="submit" style="${buttonStyle()}; margin-bottom: 10px;">Şifrəni Yenilə</button>
+                    <button type="button" id="cancelPassBtn" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.1); border: none; border-radius: 10px; color: white; cursor: pointer; font-weight: 600;">Geri qayıt</button>
+                </form>
+            </div>
+        </div>
+    `;
+    attachPasswordToggle('oldPass');
+    attachPasswordToggle('newPass');
+
+    document.getElementById('cancelPassBtn').addEventListener('click', renderStudentDashboard);
+
+    document.getElementById('changePassForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const oldPass = document.getElementById('oldPass').value.trim();
+        const newPass = document.getElementById('newPass').value.trim();
+
+        if (oldPass !== currentStudent.password) {
+            alert("Köhnə şifrə yanlışdır!");
+            return;
+        }
+
+        try {
+            const { error } = await supabase
+                .from('students_account')
+                .update({ password: newPass })
+                .eq('id', currentStudent.id);
+
+            if (error) throw error;
+
+            currentStudent.password = newPass;
+            alert("Şifrəniz uğurla yeniləndi!");
+            renderStudentDashboard();
+        } catch (err) {
+            alert("Xəta baş verdi: " + err.message);
+        }
+    });
+}
+
 // Sınaq interfeysi
 async function loadAndStartQuiz(quizId) {
     appContainer.innerHTML = `
-        <div style="min-height: 100vh; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; display: flex; justify-content: center; align-items: center;">
+        <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; justify-content: center; align-items: center;">
             <div style="width: 100%; max-width: 600px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 24px; border-radius: 20px; color: white;">
                 <div id="quizHeader" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-                    <h2 id="quizTitle" style="font-size: 18px; color: #d8b4fe;">Sınaq yüklənir...</h2>
+                    <h2 id="quizTitle" style="font-size: 18px; color: #d8b4fe; margin: 0;">Sınaq yüklənir...</h2>
                 </div>
                 <div id="timerDisplay" style="display: flex; justify-content: center; align-items: center; background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); padding: 8px 16px; border-radius: 12px; font-weight: bold; color: #f87171; margin: 0 auto 16px auto; width: fit-content; font-size: 15px;"></div>
                 <div id="questionBox" style="margin-bottom: 20px; font-size: 16px; line-height: 1.5;"></div>
@@ -299,7 +510,7 @@ function renderQuestion() {
 
     options.forEach((opt, index) => {
         const isSelected = userAnswers[currentQuestionIndex] === index ? "background: rgba(126, 34, 206, 0.5); border-color: #a855f7;" : "background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1);";
-        optionsHtml += `<button class="option-btn" data-index="${index}" style="width: 100%; text-align: left; padding: 12px 16px; margin-bottom: 10px; ${isSelected} border-radius: 10px; color: white; border-style: solid; border-width: 1px; cursor: pointer; transition: 0.2s;">${opt}</button>`;
+        optionsHtml += `<button class="option-btn" data-index="${index}" style="width: 100%; text-align: left; padding: 12px 16px; margin-bottom: 10px; ${isSelected} border-radius: 10px; color: white; border-style: solid; border-width: 1px; cursor: pointer; transition: 0.2s; box-sizing: border-box;">${opt}</button>`;
     });
 
     const questionText = q.question || q.text || q.prompt || q.title || (typeof q === 'string' ? q : "");
@@ -367,7 +578,6 @@ async function showResults() {
         details: details
     };
 
-    // Supabase student_results cədvəlinə yazırıq
     try {
         await supabase.from('student_results').insert([
             {
@@ -389,7 +599,7 @@ async function showResults() {
     }
 
     appContainer.innerHTML = `
-        <div style="min-height: 100vh; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; display: flex; justify-content: center; align-items: center;">
+        <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; justify-content: center; align-items: center;">
             <div style="width: 100%; max-width: 450px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 20px; text-align: center; color: white;">
                 <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 12px; color: #a855f7;">🎉 Sınaq Tamamlandı!</h2>
                 <div style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); padding: 16px; border-radius: 12px; margin-bottom: 20px;">
@@ -401,12 +611,9 @@ async function showResults() {
         </div>
     `;
 
-    document.getElementById('backToCabinetBtn').addEventListener('click', () => {
-        renderStudentDashboard();
-    });
+    document.getElementById('backToCabinetBtn').addEventListener('click', renderStudentDashboard);
 }
 
-// Tətbiq başladığı zaman auth səhifəsini çağırırıq
 window.addEventListener('DOMContentLoaded', () => {
     renderAuthScreen();
 });
