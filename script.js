@@ -252,17 +252,18 @@ async function renderStudentDashboard() {
         </div>
         
         <style>
-            @keyframes borderRotate {
+            @keyframes geminiGlowRotate {
                 0% { transform: rotate(0deg); }
                 100% { transform: rotate(360deg); }
             }
             .spinning-border {
                 position: absolute;
-                inset: -5px;
+                inset: -6px;
                 border-radius: 50%;
-                border: 3px solid transparent;
-                animation: borderRotate 1.5s linear infinite;
+                border: 3.5px solid transparent;
+                animation: geminiGlowRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
                 pointer-events: none;
+                filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.6));
             }
         </style>
     `;
@@ -295,7 +296,7 @@ async function renderStudentDashboard() {
         menuLogout.style.color = '#f87171';
     });
 
-    // MR üzərinə gələndə nəticəyə görə fırlanan rəngli dairə effekti
+    // MR üzərinə gələndə Gemini üslubunda yumşaq və canlı rəng keçidləri ilə fırlanan dairə
     profileCircle.addEventListener('mouseenter', async () => {
         try {
             const { data: results } = await supabase
@@ -304,17 +305,21 @@ async function renderStudentDashboard() {
                 .eq('student_name', currentStudent.name)
                 .eq('student_surname', currentStudent.surname);
 
-            let borderColor = '#fbbf24'; // default orta (sarı)
+            let primaryColor = '#eab308'; // default orta (canlı sarı)
+            let secondaryColor = '#3b82f6'; // Gemini mavi tonu
+
             if (results && results.length > 0) {
-                // Ən son nəticəni və ya ortalamanı hesablayaq
                 const lastRes = results[results.length - 1];
                 const percent = (lastRes.score / lastRes.total) * 100;
                 if (percent < 50) {
-                    borderColor = '#ef4444'; // Pis (qırmızı)
+                    primaryColor = '#ef4444'; // Pis (canlı qırmızı)
+                    secondaryColor = '#f97316'; // Narıncı tonu
                 } else if (percent >= 80) {
-                    borderColor = '#22c55e'; // Əla (yaşıl)
+                    primaryColor = '#10b981'; // Əla (canlı yaşıl/mavi gradient hissi)
+                    secondaryColor = '#06b6d4'; // Cyan tonu
                 } else {
-                    borderColor = '#eab308'; // Orta (sarı)
+                    primaryColor = '#eab308'; // Orta (canlı sarı)
+                    secondaryColor = '#ec4899'; // Çəhrayı tonu
                 }
             }
 
@@ -325,9 +330,10 @@ async function renderStudentDashboard() {
                 borderEl.className = 'spinning-border';
                 profileCircle.appendChild(borderEl);
             }
-            borderEl.style.borderTopColor = borderColor;
-            borderEl.style.borderRightColor = 'transparent';
-            borderEl.style.borderBottomColor = 'transparent';
+            // Gemini tipli yumşaq gradient keçidi (top və right hissələr rəngli, qalanlar şəffaf)
+            borderEl.style.borderTopColor = primaryColor;
+            borderEl.style.borderRightColor = secondaryColor;
+            borderEl.style.borderBottomColor = 'rgba(255, 255, 255, 0.15)';
             borderEl.style.borderLeftColor = 'transparent';
         } catch(e) {}
     });
