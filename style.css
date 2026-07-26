@@ -6,7 +6,7 @@
 }
 
 body {
-    background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+    background: linear-gradient(135deg, #05050a, #1a0b2e, #0f0c29);
     color: #f8fafc;
     min-height: 100vh;
     display: flex;
@@ -21,24 +21,24 @@ body {
 }
 
 .card-container {
-    background: rgba(30, 27, 75, 0.8);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(129, 140, 248, 0.25);
+    background: rgba(20, 10, 40, 0.85);
+    backdrop-filter: blur(14px);
+    border: 1px solid rgba(147, 51, 234, 0.3);
     border-radius: 20px;
     padding: 30px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
     text-align: center;
 }
 
 h1 {
     font-size: 24px;
     margin-bottom: 6px;
-    color: #c7d2fe;
+    color: #e9d5ff;
 }
 
 .subtitle {
     font-size: 13px;
-    color: #94a3b8;
+    color: #c084fc;
     margin-bottom: 20px;
 }
 
@@ -51,8 +51,8 @@ h1 {
 input[type="number"] {
     flex: 1;
     padding: 10px 14px;
-    background: #0f172a;
-    border: 1px solid #4338ca;
+    background: #090514;
+    border: 1px solid #7e22ce;
     border-radius: 10px;
     color: white;
     font-size: 14px;
@@ -60,7 +60,7 @@ input[type="number"] {
 }
 
 input[type="number"]:focus {
-    border-color: #818cf8;
+    border-color: #a855f7;
 }
 
 .btn {
@@ -73,22 +73,22 @@ input[type="number"]:focus {
 }
 
 .primary-btn {
-    background: linear-gradient(135deg, #4f46e5, #3b82f6);
+    background: linear-gradient(135deg, #7e22ce, #9333ea);
     color: white;
 }
 
 .primary-btn:hover {
-    background: linear-gradient(135deg, #4338ca, #2563eb);
+    background: linear-gradient(135deg, #6b21a8, #7e22ce);
 }
 
 .secondary-btn {
-    background: #312e81;
-    color: #c7d2fe;
+    background: #2e1065;
+    color: #e9d5ff;
     width: 100%;
 }
 
 .secondary-btn:hover {
-    background: #3730a3;
+    background: #3b0764;
 }
 
 .quiz-list {
@@ -99,7 +99,7 @@ input[type="number"]:focus {
 }
 
 .quiz-list-item {
-    background: rgba(49, 46, 129, 0.4);
+    background: rgba(46, 16, 101, 0.4);
     padding: 10px 14px;
     margin-bottom: 6px;
     border-radius: 8px;
@@ -113,17 +113,36 @@ input[type="number"]:focus {
 }
 
 .quiz-list-item:hover {
-    background: rgba(79, 70, 229, 0.4);
-    border-color: #818cf8;
+    background: rgba(126, 34, 206, 0.4);
+    border-color: #a855f7;
 }
 
 .quiz-container {
-    margin-top: 20px;
+    margin-top: 10px;
     text-align: left;
-    background: rgba(15, 23, 42, 0.7);
-    padding: 18px;
+    background: rgba(9, 5, 20, 0.8);
+    padding: 20px;
     border-radius: 12px;
-    border: 1px solid #312e81;
+    border: 1px solid #7e22ce;
+}
+
+.quiz-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #2e1065;
+    padding-bottom: 10px;
+}
+
+.timer-box {
+    background: #3b0764;
+    color: #f3e8ff;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 13px;
+    border: 1px solid #9333ea;
 }
 
 .question-box {
@@ -137,8 +156,8 @@ input[type="number"]:focus {
     width: 100%;
     padding: 10px 12px;
     margin-bottom: 6px;
-    background: #1e1b4b;
-    border: 1px solid #4338ca;
+    background: #1e0b36;
+    border: 1px solid #7e22ce;
     color: #f8fafc;
     border-radius: 8px;
     text-align: left;
@@ -148,12 +167,12 @@ input[type="number"]:focus {
 }
 
 .option-btn:hover {
-    background: #312e81;
+    background: #2e1065;
 }
 
 .option-btn.selected {
-    background: #4f46e5;
-    border-color: #818cf8;
+    background: #9333ea;
+    border-color: #c084fc;
 }
 
 .quiz-nav {
@@ -168,7 +187,7 @@ input[type="number"]:focus {
 
 .loading {
     margin-top: 12px;
-    color: #818cf8;
+    color: #c084fc;
     font-size: 14px;
     font-weight: 500;
 }
