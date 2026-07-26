@@ -5,11 +5,15 @@ const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const loadQuizByIdBtn = document.getElementById("loadQuizByIdBtn");
+// DOM elementləri
 const studentNameInput = document.getElementById("studentNameInput");
 const studentSurnameInput = document.getElementById("studentSurnameInput");
 const studentClassInput = document.getElementById("studentClassInput");
-const quizIdInput = document.getElementById("quizIdInput");
+const studentPasswordInput = document.getElementById("studentPasswordInput"); // Yeni şifrə xanası
+
+const registerBtn = document.getElementById("registerBtn"); // Qeydiyyat düyməsi
+const loginBtn = document.getElementById("loginBtn");       // Daxil ol düyməsi
+
 const searchSection = document.getElementById("searchSection");
 const quizContainer = document.getElementById("quizContainer");
 const loading = document.getElementById("loading");
@@ -26,22 +30,81 @@ let studentInfo = {};
 let timerInterval = null;
 let timeLeft = 0;
 
-loadQuizByIdBtn.addEventListener("click", () => {
+// URL-dən Test ID-ni avtomatik oxuyuruq (məsələn: ?quizId=1)
+window.addEventListener("DOMContentLoaded", () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    currentQuizId = urlParams.get("quizId") || urlParams.get("id");
+});
+
+// 1. QEYDİYYATDAN KEÇ
+registerBtn.addEventListener("click", async () => {
     const name = studentNameInput.value.trim();
     const surname = studentSurnameInput.value.trim();
     const studentClass = studentClassInput.value.trim();
-    const quizId = quizIdInput.value.trim();
+    const password = studentPasswordInput.value.trim();
 
-    if (!name || !surname || !studentClass) {
-        return alert("Zəhmət olmasa Ad, Soyad və Sinif məlumatlarını daxil edin!");
-    }
-    if (!quizId) {
-        return alert("Zəhmət olmasa Test ID daxil edin!");
+    if (!name || !surname || !studentClass || !password) {
+        return alert("Zəhmət olmasa bütün sahələri (Ad, Soyad, Sinif və Şifrə) doldurun!");
     }
 
-    studentInfo = { name, surname, class: studentClass };
-    currentQuizId = quizId;
-    loadQuizFromDatabase(quizId);
+    try {
+        loading.classList.remove("hidden");
+        // Əvvəlcə belə istifadəçinin olub-olmadığını yoxlaya bilərik və ya birbaşa qeydiyyat edərik
+        const { error } = await supabase.from('students_account').insert([
+            { name, surname, student_class: studentClass, password }
+        ]);
+
+        if (error) throw error;
+
+        alert("Uğurla qeydiyyatdan keçdiniz! İndi 'Daxil ol' düyməsini sıxın.");
+    } catch (err) {
+        alert("Qeydiyyat xətası: " + err.message);
+    } finally {
+        loading.classList.add("hidden");
+    }
+});
+
+// 2. DAXİL OL
+loginBtn.addEventListener("click", async () => {
+    const name = studentNameInput.value.trim();
+    const surname = studentSurnameInput.value.trim();
+    const studentClass = studentClassInput.value.trim();
+    const password = studentPasswordInput.value.trim();
+
+    if (!name || !surname || !studentClass || !password) {
+        return alert("Daxil olmaq üçün Ad, Soyad, Sinif və Şifrənizi daxil edin!");
+    }
+
+    try {
+        loading.classList.remove("hidden");
+        
+        // students_account cədvəlində məlumatları yoxlayırıq
+        const { data, error } = await supabase
+            .from('students_account')
+            .select('*')
+            .eq('name', name)
+            .eq('surname', surname)
+            .eq('student_class', studentClass)
+            .eq('password', password)
+            .single();
+
+        if (error || !data) {
+            alert("Belə bir hesab tapılmadı və ya şifrə səhvdir! Zəhmət olmasa əvvəlcə qeydiyyatdan keçin.");
+            return;
+        }
+
+        studentInfo = { name, surname, class: studentClass };
+        
+        // Əgər URL-də test ID yoxdursa default olaraq 1 götürürük
+        if (!currentQuizId) currentQuizId = 1; 
+
+        loadQuizFromDatabase(currentQuizId);
+
+    } catch (err) {
+        alert("Giriş xətası: Hesab tapılmadı və ya məlumatlar yanlışdır.");
+    } finally {
+        loading.classList.add("hidden");
+    }
 });
 
 async function loadQuizFromDatabase(quizId) {
@@ -59,15 +122,11 @@ async function loadQuizFromDatabase(quizId) {
 
         let parsedData = data.questions_data;
         if (typeof parsedData === 'string') {
-            try {
-                parsedData = JSON.parse(parsedData);
-            } catch(e) {}
+            try { parsedData = JSON.parse(parsedData); } catch(e) {}
         }
 
         currentQuizData = Array.isArray(parsedData) ? parsedData : [];
-        if (currentQuizData.length === 0) {
-            throw new Error("Bu testdə suallar mövcud deyil.");
-        }
+        if (currentQuizData.length === 0) throw new Error("Bu testdə suallar mövcud deyil.");
 
         currentQuestionIndex = 0;
         userAnswers = {};
@@ -82,9 +141,7 @@ async function loadQuizFromDatabase(quizId) {
             startTimer();
         } else {
             let timerEl = document.getElementById('timerDisplay');
-            if (timerEl) {
-                timerEl.textContent = "Vaxt məhdudiyyəti yoxdur";
-            } else {
+            if (!timerEl) {
                 timerEl = document.createElement('div');
                 timerEl.id = 'timerDisplay';
                 timerEl.style.cssText = "display: flex; justify-content: center; align-items: center; background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); padding: 8px 16px; border-radius: 12px; font-weight: bold; color: #f87171; margin: 0 auto 16px auto; width: fit-content; font-size: 15px;";
@@ -92,7 +149,6 @@ async function loadQuizFromDatabase(quizId) {
                 quizContainer.prepend(timerEl);
             }
         }
-
     } catch (err) {
         alert("Xəta: " + err.message);
     } finally {
@@ -118,7 +174,6 @@ function startTimer() {
             showResults();
             return;
         }
-
         timeLeft--;
         const mins = Math.floor(timeLeft / 60);
         const secs = timeLeft % 60;
@@ -128,7 +183,6 @@ function startTimer() {
 
 function renderQuestion() {
     if (!currentQuizData || currentQuizData.length === 0) return;
-
     const q = currentQuizData[currentQuestionIndex];
     let optionsHtml = "";
     const rawOptions = q.options || q.choices || q.variants || [];
@@ -200,9 +254,8 @@ async function showResults() {
         details: details
     };
 
-    // Supabase-ə yazılan JSON formatı təmizləndi
     try {
-        const { error } = await supabase.from('student_results').insert([
+        await supabase.from('student_results').insert([
             {
                 quiz_id: parseInt(currentQuizId) || 0,
                 student_name: studentInfo.name,
@@ -213,12 +266,8 @@ async function showResults() {
                 details_json: JSON.stringify(details)
             }
         ]);
-        
-        if (error) {
-            console.error("Supabase xətası:", error.message);
-        }
     } catch (err) {
-        console.error("Sorğu xətası:", err);
+        console.error("Nəticə yazılmadı:", err);
     }
 
     if (window.AndroidBridge && typeof window.AndroidBridge.onQuizFinished === 'function') {
