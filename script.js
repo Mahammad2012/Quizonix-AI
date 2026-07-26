@@ -218,7 +218,7 @@ async function renderStudentDashboard() {
 
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; flex-direction: column; align-items: center;">
-            <div style="width: 100%; max-width: 700px;">
+            <div style="width: 100%; max-width: 500px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); backdrop-filter: blur(12px); padding: 16px 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 24px;">
                     <div>
                         <h2 style="font-size: 18px; color: #d8b4fe; margin: 0 0 4px 0;">Xoş gəldiniz, ${currentStudent.name} ${currentStudent.surname}</h2>
@@ -239,7 +239,6 @@ async function renderStudentDashboard() {
             </div>
         </div>
         
-        <!-- Dropdown menyu birbaşa global səviyyədə yerləşdirilir ki, heç bir elementin altında qalmasın -->
         <div id="profileDropdown" style="display: none; position: fixed; background: rgba(20, 15, 40, 0.98); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; width: 180px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); z-index: 99999; overflow: hidden;">
             <button id="menuMyResults" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08);">📊 Nəticələrim</button>
             <button id="menuChangePassword" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08);">🔑 Şifrəni dəyişdir</button>
@@ -257,7 +256,6 @@ async function renderStudentDashboard() {
         if (profileDropdown.style.display === 'block') {
             profileDropdown.style.display = 'none';
         } else {
-            // Menyunu dairənin səliqəli altında yerləşdirmək üçün koordinat hesablanır
             profileDropdown.style.top = (rect.bottom + 8) + 'px';
             profileDropdown.style.right = (window.innerWidth - rect.right) + 'px';
             profileDropdown.style.display = 'block';
@@ -296,13 +294,14 @@ async function renderStudentDashboard() {
         listContainer.innerHTML = '';
         quizzes.forEach(quiz => {
             const card = document.createElement('div');
-            card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 18px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center;";
+            // Sınaq kartı düzbucaqlı formada və daha yığcam (mütənasib) edilməsi üçün padding və struktur tənzimləndi
+            card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 16px 20px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;";
             card.innerHTML = `
                 <div>
-                    <h4 style="font-size: 16px; font-weight: 600; color: #f1f5f9; margin: 0 0 4px 0;">${quiz.title || `Test #${quiz.id}`}</h4>
+                    <h4 style="font-size: 15px; font-weight: 600; color: #f1f5f9; margin: 0 0 4px 0;">${quiz.title || `Test #${quiz.id}`}</h4>
                     <p style="font-size: 13px; color: #a78bfa; margin: 0;">⏱️ Müddət: ${quiz.duration ? quiz.duration + ' dəqiqə' : 'Məhdudiyyət yoxdur'}</p>
                 </div>
-                <button data-id="${quiz.id}" class="startQuizBtn" style="padding: 10px 20px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">Sınağa Başla</button>
+                <button data-id="${quiz.id}" class="startQuizBtn" style="padding: 8px 16px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; white-space: nowrap;">Sınağa Başla</button>
             `;
             listContainer.appendChild(card);
         });
@@ -320,7 +319,7 @@ async function renderStudentDashboard() {
 async function renderStudentResultsView() {
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; flex-direction: column; align-items: center;">
-            <div style="width: 100%; max-width: 700px;">
+            <div style="width: 100%; max-width: 500px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                     <h2 style="font-size: 20px; color: #d8b4fe; margin: 0;">📊 Sənin Nəticələrin</h2>
                     <button id="backToDashboard" style="padding: 8px 16px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 8px; cursor: pointer; font-weight: 600;">Kabinetə qayıt</button>
@@ -442,7 +441,7 @@ function renderChangePasswordModal() {
 async function loadAndStartQuiz(quizId) {
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; justify-content: center; align-items: center;">
-            <div style="width: 100%; max-width: 600px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 24px; border-radius: 20px; color: white;">
+            <div style="width: 100%; max-width: 500px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 24px; border-radius: 20px; color: white;">
                 <div id="quizHeader" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                     <h2 id="quizTitle" style="font-size: 18px; color: #d8b4fe; margin: 0;">Sınaq yüklənir...</h2>
                 </div>
