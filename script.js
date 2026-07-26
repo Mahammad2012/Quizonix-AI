@@ -81,7 +81,15 @@ async function loadQuizFromDatabase(quizId) {
             startTimer();
         } else {
             let timerEl = document.getElementById('timerDisplay');
-            if (timerEl) timerEl.textContent = "Vaxt məhdudiyyəti yoxdur";
+            if (timerEl) {
+                timerEl.textContent = "Vaxt məhdudiyyəti yoxdur";
+            } else {
+                timerEl = document.createElement('div');
+                timerEl.id = 'timerDisplay';
+                timerEl.style.cssText = "display: flex; justify-content: center; align-items: center; background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); padding: 8px 16px; border-radius: 12px; font-weight: bold; color: #f87171; margin: 0 auto 16px auto; width: fit-content; font-size: 15px;";
+                timerEl.textContent = "Vaxt məhdudiyyəti yoxdur";
+                quizContainer.prepend(timerEl);
+            }
         }
 
     } catch (err) {
@@ -97,9 +105,11 @@ function startTimer() {
     if (!timerEl) {
         timerEl = document.createElement('div');
         timerEl.id = 'timerDisplay';
-        timerEl.style.cssText = "font-weight: bold; color: #f87171; margin-bottom: 12px; font-size: 14px;";
         quizContainer.prepend(timerEl);
     }
+    
+    // Ayrı mərkəzləşdirilmiş çərçivə üslubu (yuxarı orta hissə)
+    timerEl.style.cssText = "display: flex; justify-content: center; align-items: center; background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); padding: 8px 16px; border-radius: 12px; font-weight: bold; color: #f87171; margin: 0 auto 16px auto; width: fit-content; font-size: 15px;";
 
     timerInterval = setInterval(() => {
         if (timeLeft <= 0) {
@@ -112,7 +122,7 @@ function startTimer() {
         timeLeft--;
         const mins = Math.floor(timeLeft / 60);
         const secs = timeLeft % 60;
-        timerEl.textContent = `⏱️ Qalan vaxt: ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        timerEl.innerHTML = `⏱️ Qalan vaxt: ${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }, 1000);
 }
 
