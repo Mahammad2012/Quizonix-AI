@@ -217,9 +217,9 @@ async function renderStudentDashboard() {
     const initials = (currentStudent.name.charAt(0) + currentStudent.surname.charAt(0)).toUpperCase();
 
     appContainer.innerHTML = `
-        <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; flex-direction: column; align-items: center;">
-            <div style="width: 100%; max-width: 400px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); backdrop-filter: blur(12px); padding: 16px 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 24px;">
+        <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px;">
+            <div style="width: 100%;">
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); backdrop-filter: blur(12px); padding: 16px 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 24px; box-sizing: border-box; width: 100%;">
                     <div>
                         <h2 style="font-size: 18px; color: #d8b4fe; margin: 0 0 4px 0;">Xoş gəldiniz, ${currentStudent.name} ${currentStudent.surname}</h2>
                         <p style="font-size: 13px; color: #94a3b8; margin: 0;">Sinif: ${currentStudent.student_class}</p>
@@ -233,7 +233,7 @@ async function renderStudentDashboard() {
                 </div>
 
                 <h3 style="font-size: 18px; margin-bottom: 16px; color: #e2e8f0;">📝 Mövcud Sınaqlar</h3>
-                <div id="quizzesList" style="display: flex; flex-direction: column; gap: 12px;">
+                <div id="quizzesList" style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
                     <p style="text-align: center; color: #94a3b8; padding: 20px;">Sınaqlar yüklənir...</p>
                 </div>
             </div>
@@ -294,7 +294,7 @@ async function renderStudentDashboard() {
         listContainer.innerHTML = '';
         quizzes.forEach(quiz => {
             const card = document.createElement('div');
-            card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 16px 20px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;";
+            card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 16px 20px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; width: 100%;";
             card.innerHTML = `
                 <div>
                     <h4 style="font-size: 15px; font-weight: 600; color: #f1f5f9; margin: 0 0 4px 0;">${quiz.title || `Test #${quiz.id}`}</h4>
@@ -317,13 +317,13 @@ async function renderStudentDashboard() {
 
 async function renderStudentResultsView() {
     appContainer.innerHTML = `
-        <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; flex-direction: column; align-items: center;">
-            <div style="width: 100%; max-width: 400px;">
+        <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px;">
+            <div style="width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                     <h2 style="font-size: 20px; color: #d8b4fe; margin: 0;">📊 Sənin Nəticələrin</h2>
                     <button id="backToDashboard" style="padding: 8px 16px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 8px; cursor: pointer; font-weight: 600;">Kabinetə qayıt</button>
                 </div>
-                <div id="resultsContainer" style="display: flex; flex-direction: column; gap: 16px;">
+                <div id="resultsContainer" style="display: flex; flex-direction: column; gap: 16px; width: 100%;">
                     <p style="text-align: center; color: #94a3b8; padding: 20px;">Nəticələr yüklənir...</p>
                 </div>
             </div>
@@ -365,7 +365,7 @@ async function renderStudentResultsView() {
             }
 
             const card = document.createElement('div');
-            card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; gap: 20px;";
+            card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; gap: 20px; box-sizing: border-box; width: 100%;";
             
             card.innerHTML = `
                 <div>
@@ -377,7 +377,7 @@ async function renderStudentResultsView() {
                         <span style="color: #fbbf24;">⚪ Boş: ${blankCount}</span>
                     </div>
                 </div>
-                <div style="width: 65px; height: 65px; border-radius: 50%; background: conic-gradient(#7e22ce ${percent}%, rgba(255,255,255,0.1) 0%); display: flex; justify-content: center; align-items: center; position: relative;">
+                <div style="width: 65px; height: 65px; border-radius: 50%; background: conic-gradient(#7e22ce ${percent}%, rgba(255,255,255,0.1) 0%); display: flex; justify-content: center; align-items: center; position: relative; flex-shrink: 0;">
                     <div style="width: 53px; height: 53px; background: #18152e; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 13px; font-weight: bold; color: #d8b4fe;">
                         ${percent}%
                     </div>
