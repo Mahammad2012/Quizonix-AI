@@ -226,7 +226,7 @@ async function renderStudentDashboard() {
                     </div>
 
                     <div>
-                        <div id="profileCircle" style="width: 45px; height: 45px; background: linear-gradient(135deg, #7e22ce, #a855f7); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 16px; cursor: pointer; border: 2px solid rgba(255,255,255,0.2); position: relative; transition: 0.3s;" title="Profil menyusu">
+                        <div id="profileCircle" style="width: 45px; height: 45px; background: linear-gradient(135deg, #7e22ce, #a855f7); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 16px; cursor: pointer; border: 2px solid rgba(255,255,255,0.2); position: relative;" title="Profil menyusu">
                             ${initials}
                         </div>
                     </div>
@@ -250,22 +250,6 @@ async function renderStudentDashboard() {
                 <img src="https://api.iconify.design/lucide:log-out.svg?color=%23f87171" width="18" height="18" alt="Çıxış" style="flex-shrink: 0;" /> Çıxış et
             </button>
         </div>
-        
-        <style>
-            @keyframes geminiGlowRotate {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-            .spinning-border {
-                position: absolute;
-                inset: -6px;
-                border-radius: 50%;
-                border: 3.5px solid transparent;
-                animation: geminiGlowRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-                pointer-events: none;
-                filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.6));
-            }
-        </style>
     `;
 
     const profileCircle = document.getElementById('profileCircle');
@@ -275,7 +259,6 @@ async function renderStudentDashboard() {
     const menuChangePassword = document.getElementById('menuChangePassword');
     const menuLogout = document.getElementById('menuLogout');
 
-    // Hover effektləri (klikləmə efekti kimi rəng dəyişməsi)
     [menuMyResults, menuChangePassword].forEach(btn => {
         btn.addEventListener('mouseenter', () => {
             btn.style.background = '#7e22ce';
@@ -294,53 +277,6 @@ async function renderStudentDashboard() {
     menuLogout.addEventListener('mouseleave', () => {
         menuLogout.style.background = 'none';
         menuLogout.style.color = '#f87171';
-    });
-
-    // MR üzərinə gələndə Gemini üslubunda yumşaq və canlı rəng keçidləri ilə fırlanan dairə
-    profileCircle.addEventListener('mouseenter', async () => {
-        try {
-            const { data: results } = await supabase
-                .from('student_results')
-                .select('score, total')
-                .eq('student_name', currentStudent.name)
-                .eq('student_surname', currentStudent.surname);
-
-            let primaryColor = '#eab308'; // default orta (canlı sarı)
-            let secondaryColor = '#3b82f6'; // Gemini mavi tonu
-
-            if (results && results.length > 0) {
-                const lastRes = results[results.length - 1];
-                const percent = (lastRes.score / lastRes.total) * 100;
-                if (percent < 50) {
-                    primaryColor = '#ef4444'; // Pis (canlı qırmızı)
-                    secondaryColor = '#f97316'; // Narıncı tonu
-                } else if (percent >= 80) {
-                    primaryColor = '#10b981'; // Əla (canlı yaşıl/mavi gradient hissi)
-                    secondaryColor = '#06b6d4'; // Cyan tonu
-                } else {
-                    primaryColor = '#eab308'; // Orta (canlı sarı)
-                    secondaryColor = '#ec4899'; // Çəhrayı tonu
-                }
-            }
-
-            let borderEl = document.getElementById('spinningBorder');
-            if (!borderEl) {
-                borderEl = document.createElement('div');
-                borderEl.id = 'spinningBorder';
-                borderEl.className = 'spinning-border';
-                profileCircle.appendChild(borderEl);
-            }
-            // Gemini tipli yumşaq gradient keçidi (top və right hissələr rəngli, qalanlar şəffaf)
-            borderEl.style.borderTopColor = primaryColor;
-            borderEl.style.borderRightColor = secondaryColor;
-            borderEl.style.borderBottomColor = 'rgba(255, 255, 255, 0.15)';
-            borderEl.style.borderLeftColor = 'transparent';
-        } catch(e) {}
-    });
-
-    profileCircle.addEventListener('mouseleave', () => {
-        const borderEl = document.getElementById('spinningBorder');
-        if (borderEl) borderEl.remove();
     });
 
     profileCircle.addEventListener('click', (e) => {
@@ -422,6 +358,30 @@ async function renderStudentResultsView() {
                 </div>
             </div>
         </div>
+        <style>
+            @keyframes geminiGlowRotate {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            .result-ai-card {
+                position: relative;
+                border-radius: 16px;
+                transition: transform 0.2s;
+            }
+            .result-ai-card:hover {
+                transform: translateY(-2px);
+            }
+            .result-spinning-border {
+                position: absolute;
+                inset: -3px;
+                border-radius: 18px;
+                border: 3px solid transparent;
+                animation: geminiGlowRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+                pointer-events: none;
+                filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.7));
+                z-index: 1;
+            }
+        </style>
     `;
 
     document.getElementById('backToDashboard').addEventListener('click', renderStudentDashboard);
@@ -440,8 +400,20 @@ async function renderStudentResultsView() {
         }
 
         container.innerHTML = '';
-        results.forEach(res => {
+        results.forEach((res, index) => {
             const percent = Math.round((res.score / res.total) * 100);
+
+            // Nəticəyə görə Gemini rəng palitrasının təyini
+            let primaryColor = '#eab308'; // Orta (canlı sarı)
+            let secondaryColor = '#ec4899'; // Çəhrayı tonu
+
+            if (percent < 50) {
+                primaryColor = '#ef4444'; // Zəif (canlı qırmızı)
+                secondaryColor = '#f97316'; // Narıncı tonu
+            } else if (percent >= 80) {
+                primaryColor = '#10b981'; // Əla (canlı yaşıl)
+                secondaryColor = '#06b6d4'; // Cyan tonu
+            }
 
             let detailsParsed = [];
             try {
@@ -458,26 +430,48 @@ async function renderStudentResultsView() {
                 blankCount = detailsParsed.filter(d => d.userAnswer === "Cavabsız").length;
             }
 
-            const card = document.createElement('div');
-            card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; gap: 20px; box-sizing: border-box; width: 100%;";
-            
-            card.innerHTML = `
-                <div>
-                    <h4 style="font-size: 16px; font-weight: 600; color: #f1f5f9; margin: 0 0 8px 0;">Test ID: #${res.quiz_id}</h4>
-                    <p style="font-size: 14px; color: #cbd5e1; margin: 0 0 4px 0;">Nəticə: <b>${res.score} / ${res.total}</b></p>
-                    <div style="font-size: 12px; color: #94a3b8; display: flex; gap: 12px; margin-top: 8px;">
-                        <span style="color: #4ade80;">✅ Düz: ${correctCount}</span>
-                        <span style="color: #f87171;">❌ Səhv: ${incorrectCount}</span>
-                        <span style="color: #fbbf24;">⚪ Boş: ${blankCount}</span>
+            const cardWrapper = document.createElement('div');
+            cardWrapper.className = 'result-ai-card';
+            cardWrapper.style.cssText = "position: relative; width: 100%; box-sizing: border-box;";
+
+            cardWrapper.innerHTML = `
+                <div style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; gap: 20px; box-sizing: border-box; width: 100%; position: relative; z-index: 2;">
+                    <div>
+                        <h4 style="font-size: 16px; font-weight: 600; color: #f1f5f9; margin: 0 0 8px 0;">Test ID: #${res.quiz_id}</h4>
+                        <p style="font-size: 14px; color: #cbd5e1; margin: 0 0 4px 0;">Nəticə: <b>${res.score} / ${res.total}</b></p>
+                        <div style="font-size: 12px; color: #94a3b8; display: flex; gap: 12px; margin-top: 8px;">
+                            <span style="color: #4ade80;">✅ Düz: ${correctCount}</span>
+                            <span style="color: #f87171;">❌ Səhv: ${incorrectCount}</span>
+                            <span style="color: #fbbf24;">⚪ Boş: ${blankCount}</span>
+                        </div>
                     </div>
-                </div>
-                <div style="width: 65px; height: 65px; border-radius: 50%; background: conic-gradient(#7e22ce ${percent}%, rgba(255,255,255,0.1) 0%); display: flex; justify-content: center; align-items: center; position: relative; flex-shrink: 0;">
-                    <div style="width: 53px; height: 53px; background: #18152e; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 13px; font-weight: bold; color: #d8b4fe;">
-                        ${percent}%
+                    <div style="width: 65px; height: 65px; border-radius: 50%; background: conic-gradient(#7e22ce ${percent}%, rgba(255,255,255,0.1) 0%); display: flex; justify-content: center; align-items: center; position: relative; flex-shrink: 0;">
+                        <div style="width: 53px; height: 53px; background: #18152e; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 13px; font-weight: bold; color: #d8b4fe;">
+                            ${percent}%
+                        </div>
                     </div>
                 </div>
             `;
-            container.appendChild(card);
+
+            // Kartın üzərinə gələndə Gemini üslubunda nəticəyə uyğun rənglərlə fırlanan sərhəd effekti işə düşür
+            const borderEl = document.createElement('div');
+            borderEl.className = 'result-spinning-border';
+            borderEl.style.display = 'none';
+            borderEl.style.borderTopColor = primaryColor;
+            borderEl.style.borderRightColor = secondaryColor;
+            borderEl.style.borderBottomColor = 'rgba(255, 255, 255, 0.15)';
+            borderEl.style.borderLeftColor = 'transparent';
+            
+            cardWrapper.appendChild(borderEl);
+
+            cardWrapper.addEventListener('mouseenter', () => {
+                borderEl.style.display = 'block';
+            });
+            cardWrapper.addEventListener('mouseleave', () => {
+                borderEl.style.display = 'none';
+            });
+
+            container.appendChild(cardWrapper);
         });
 
     } catch (err) {
