@@ -657,6 +657,7 @@ async function showResults() {
     let score = 0;
     const total = currentQuizData.length;
     const details = [];
+    const correctAnswersData = [];
 
     currentQuizData.forEach((q, idx) => {
         const userAnsIdx = userAnswers[idx];
@@ -666,10 +667,16 @@ async function showResults() {
         if (isCorrect) score++;
 
         const rawOptions = q.options || q.choices || q.variants || [];
+        
         details.push({
             questionIndex: idx + 1,
             userAnswer: userAnsIdx !== undefined ? (rawOptions[userAnsIdx] || "Cavab seçilib") : "Cavabsız",
             isCorrect: isCorrect
+        });
+
+        correctAnswersData.push({
+            questionIndex: idx + 1,
+            correctAnswer: rawOptions[correctAnsIdx] || "Təyin olunmayıb"
         });
     });
 
@@ -682,7 +689,8 @@ async function showResults() {
                 student_class: currentStudent.student_class,
                 score: score,
                 total: total,
-                details_json: JSON.stringify(details)
+                details_json: JSON.stringify(details),
+                correct_answers: JSON.stringify(correctAnswersData)
             }
         ]);
     } catch (err) {
