@@ -214,8 +214,6 @@ function renderRegisterForm() {
 }
 
 async function renderStudentDashboard() {
-    const initials = (currentStudent.name.charAt(0) + currentStudent.surname.charAt(0)).toUpperCase();
-
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px;">
             <div style="width: 100%;">
@@ -226,8 +224,12 @@ async function renderStudentDashboard() {
                     </div>
 
                     <div>
-                        <div id="profileCircle" style="width: 45px; height: 45px; background: linear-gradient(135deg, #7e22ce, #a855f7); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 16px; cursor: pointer; border: 2px solid rgba(255,255,255,0.2); position: relative;" title="Profil menyusu">
-                            ${initials}
+                        <!-- MR inisialı olan və üzərinə gələndə Gemini işıq effekti işləyən profil dairəsi -->
+                        <div id="profileCircle" class="mr-profile-container" style="width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; position: relative;" title="Profil menyusu">
+                            <div class="mr-spinning-border"></div>
+                            <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #7e22ce, #a855f7); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 15px; color: white; position: relative; z-index: 2;">
+                                MR
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -239,9 +241,8 @@ async function renderStudentDashboard() {
             </div>
         </div>
         
-        <!-- Gemini üslubunda işıqlı sərhədi olan profil menyusu -->
-        <div id="profileDropdown" class="profile-ai-dropdown" style="display: none; position: fixed; background: rgba(20, 15, 40, 0.98); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; width: 200px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); z-index: 99999; overflow: hidden;">
-            <div class="profile-spinning-border"></div>
+        <!-- Sadə, səliqəli profil menyusu (rəng keçidləri silindi) -->
+        <div id="profileDropdown" style="display: none; position: fixed; background: rgba(20, 15, 40, 0.98); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; width: 200px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); z-index: 99999; overflow: hidden;">
             <div style="position: relative; z-index: 2;">
                 <button id="menuMyResults" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; transition: background 0.2s, color 0.2s;">
                     <img src="https://api.iconify.design/lucide:bar-chart-3.svg?color=%23a855f7" width="18" height="18" alt="Nəticələr" style="flex-shrink: 0;" /> Nəticələrim
@@ -260,13 +261,10 @@ async function renderStudentDashboard() {
                 0% { transform: rotate(0deg); }
                 100% { transform: rotate(360deg); }
             }
-            .profile-ai-dropdown {
-                position: relative;
-            }
-            .profile-spinning-border {
+            .mr-spinning-border {
                 position: absolute;
                 inset: -3px;
-                border-radius: 16px;
+                border-radius: 50%;
                 border: 3px solid transparent;
                 border-top-color: #a855f7;
                 border-right-color: #3b82f6;
@@ -274,23 +272,18 @@ async function renderStudentDashboard() {
                 border-left-color: transparent;
                 animation: geminiGlowRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
                 pointer-events: none;
-                filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.7));
+                filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.7));
                 z-index: 1;
                 display: none;
+            }
+            .mr-profile-container:hover .mr-spinning-border {
+                display: block;
             }
         </style>
     `;
 
     const profileCircle = document.getElementById('profileCircle');
     const profileDropdown = document.getElementById('profileDropdown');
-    const profileBorder = profileDropdown.querySelector('.profile-spinning-border');
-
-    profileDropdown.addEventListener('mouseenter', () => {
-        profileBorder.style.display = 'block';
-    });
-    profileDropdown.addEventListener('mouseleave', () => {
-        profileBorder.style.display = 'none';
-    });
 
     const menuMyResults = document.getElementById('menuMyResults');
     const menuChangePassword = document.getElementById('menuChangePassword');
@@ -322,19 +315,16 @@ async function renderStudentDashboard() {
         
         if (profileDropdown.style.display === 'block') {
             profileDropdown.style.display = 'none';
-            profileBorder.style.display = 'none';
         } else {
             profileDropdown.style.top = (rect.bottom + 8) + 'px';
             profileDropdown.style.right = (window.innerWidth - rect.right) + 'px';
             profileDropdown.style.display = 'block';
-            profileBorder.style.display = 'block';
         }
     });
 
     document.addEventListener('click', (e) => {
         if (!profileCircle.contains(e.target) && !profileDropdown.contains(e.target)) {
             profileDropdown.style.display = 'none';
-            profileBorder.style.display = 'none';
         }
     });
 
@@ -398,30 +388,6 @@ async function renderStudentResultsView() {
                 </div>
             </div>
         </div>
-        <style>
-            @keyframes geminiGlowRotate {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-            .result-ai-card {
-                position: relative;
-                border-radius: 16px;
-                transition: transform 0.2s;
-            }
-            .result-ai-card:hover {
-                transform: translateY(-2px);
-            }
-            .result-spinning-border {
-                position: absolute;
-                inset: -3px;
-                border-radius: 18px;
-                border: 3px solid transparent;
-                animation: geminiGlowRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-                pointer-events: none;
-                filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.7));
-                z-index: 1;
-            }
-        </style>
     `;
 
     document.getElementById('backToDashboard').addEventListener('click', renderStudentDashboard);
@@ -443,17 +409,6 @@ async function renderStudentResultsView() {
         results.forEach((res) => {
             const percent = Math.round((res.score / res.total) * 100);
 
-            let primaryColor = '#eab308'; 
-            let secondaryColor = '#ec4899'; 
-
-            if (percent < 50) {
-                primaryColor = '#ef4444'; 
-                secondaryColor = '#f97316'; 
-            } else if (percent >= 80) {
-                primaryColor = '#10b981'; 
-                secondaryColor = '#06b6d4'; 
-            }
-
             let detailsParsed = [];
             try {
                 detailsParsed = typeof res.details_json === 'string' ? JSON.parse(res.details_json) : res.details_json;
@@ -469,47 +424,27 @@ async function renderStudentResultsView() {
                 blankCount = detailsParsed.filter(d => d.userAnswer === "Cavabsız").length;
             }
 
-            const cardWrapper = document.createElement('div');
-            cardWrapper.className = 'result-ai-card';
-            cardWrapper.style.cssText = "position: relative; width: 100%; box-sizing: border-box;";
+            const cardDiv = document.createElement('div');
+            cardDiv.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; gap: 20px; box-sizing: border-box; width: 100%;";
 
-            cardWrapper.innerHTML = `
-                <div style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; gap: 20px; box-sizing: border-box; width: 100%; position: relative; z-index: 2;">
-                    <div>
-                        <h4 style="font-size: 16px; font-weight: 600; color: #f1f5f9; margin: 0 0 8px 0;">Test ID: #${res.quiz_id}</h4>
-                        <p style="font-size: 14px; color: #cbd5e1; margin: 0 0 4px 0;">Nəticə: <b>${res.score} / ${res.total}</b></p>
-                        <div style="font-size: 12px; color: #94a3b8; display: flex; gap: 12px; margin-top: 8px;">
-                            <span style="color: #4ade80;">✅ Düz: ${correctCount}</span>
-                            <span style="color: #f87171;">❌ Səhv: ${incorrectCount}</span>
-                            <span style="color: #fbbf24;">⚪ Boş: ${blankCount}</span>
-                        </div>
+            cardDiv.innerHTML = `
+                <div>
+                    <h4 style="font-size: 16px; font-weight: 600; color: #f1f5f9; margin: 0 0 8px 0;">Test ID: #${res.quiz_id}</h4>
+                    <p style="font-size: 14px; color: #cbd5e1; margin: 0 0 4px 0;">Nəticə: <b>${res.score} / ${res.total}</b></p>
+                    <div style="font-size: 12px; color: #94a3b8; display: flex; gap: 12px; margin-top: 8px;">
+                        <span style="color: #4ade80;">✅ Düz: ${correctCount}</span>
+                        <span style="color: #f87171;">❌ Səhv: ${incorrectCount}</span>
+                        <span style="color: #fbbf24;">⚪ Boş: ${blankCount}</span>
                     </div>
-                    <div style="width: 65px; height: 65px; border-radius: 50%; background: conic-gradient(#7e22ce ${percent}%, rgba(255,255,255,0.1) 0%); display: flex; justify-content: center; align-items: center; position: relative; flex-shrink: 0;">
-                        <div style="width: 53px; height: 53px; background: #18152e; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 13px; font-weight: bold; color: #d8b4fe;">
-                            ${percent}%
-                        </div>
+                </div>
+                <div style="width: 65px; height: 65px; border-radius: 50%; background: conic-gradient(#7e22ce ${percent}%, rgba(255,255,255,0.1) 0%); display: flex; justify-content: center; align-items: center; position: relative; flex-shrink: 0;">
+                    <div style="width: 53px; height: 53px; background: #18152e; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 13px; font-weight: bold; color: #d8b4fe;">
+                        ${percent}%
                     </div>
                 </div>
             `;
 
-            const borderEl = document.createElement('div');
-            borderEl.className = 'result-spinning-border';
-            borderEl.style.display = 'none';
-            borderEl.style.borderTopColor = primaryColor;
-            borderEl.style.borderRightColor = secondaryColor;
-            borderEl.style.borderBottomColor = 'rgba(255, 255, 255, 0.15)';
-            borderEl.style.borderLeftColor = 'transparent';
-            
-            cardWrapper.appendChild(borderEl);
-
-            cardWrapper.addEventListener('mouseenter', () => {
-                borderEl.style.display = 'block';
-            });
-            cardWrapper.addEventListener('mouseleave', () => {
-                borderEl.style.display = 'none';
-            });
-
-            container.appendChild(cardWrapper);
+            container.appendChild(cardDiv);
         });
 
     } catch (err) {
