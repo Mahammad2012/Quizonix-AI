@@ -64,15 +64,15 @@ function renderAuthScreen() {
     renderLoginForm();
 }
 
+// Ad və Soyad üçün mərkəzləşdirilmiş input üslubu
 function inputStyle() {
-    return "width: 100%; padding: 12px 14px; margin-bottom: 14px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; font-size: 14px; outline: none; box-sizing: border-box;";
+    return "width: 100%; padding: 12px 14px; margin-bottom: 14px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; font-size: 14px; outline: none; box-sizing: border-box; text-align: center;";
 }
 
 function buttonStyle() {
     return "width: 100%; padding: 12px; background: linear-gradient(135deg, #9333ea, #c084fc); color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; transition: 0.3s;";
 }
 
-// Şifrə sahəsi: Mətn/nöqtələr tam mərkəzləşdirilib, sağda ... və ya 123
 function createPasswordFieldHTML(id, placeholder) {
     return `
         <div style="position: relative; width: 100%; margin-bottom: 14px;">
@@ -230,7 +230,8 @@ async function renderStudentDashboard() {
                         <div id="profileCircle" style="width: 45px; height: 45px; background: linear-gradient(135deg, #7e22ce, #a855f7); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 16px; cursor: pointer; border: 2px solid rgba(255,255,255,0.2);">
                             ${initials}
                         </div>
-                        <div id="profileDropdown" style="display: none; position: absolute; right: 0; top: 55px; background: rgba(20, 15, 40, 0.95); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; width: 180px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 100; overflow: hidden;">
+                        <!-- z-index artırıldı ki, hər zaman üstdə qalsın -->
+                        <div id="profileDropdown" style="display: none; position: absolute; right: 0; top: 55px; background: rgba(20, 15, 40, 0.98); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; width: 180px; box-shadow: 0 10px 25px rgba(0,0,0,0.7); z-index: 9999; overflow: hidden;">
                             <button id="menuMyResults" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08);">📊 Nəticələrim</button>
                             <button id="menuChangePassword" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08);">🔑 Şifrəni dəyişdir</button>
                             <button id="menuLogout" style="width: 100%; padding: 12px 16px; background: none; border: none; color: #f87171; text-align: left; cursor: pointer; font-size: 14px;">🚪 Çıxış et</button>
