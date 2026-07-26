@@ -264,7 +264,6 @@ async function renderStudentDashboard() {
                 inset: -3px;
                 border-radius: 50%;
                 border: 3px solid transparent;
-                /* Qırmızı, Sarı, Yaşıl keçid effekti */
                 border-top-color: #ef4444;
                 border-right-color: #eab308;
                 border-bottom-color: #22c55e;
@@ -380,7 +379,7 @@ async function renderStudentResultsView() {
             <div style="width: 100%;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                     <h2 style="font-size: 20px; color: #d8b4fe; margin: 0;">📊 Sənin Nəticələrin</h2>
-                    <button id="backToDashboard" style="padding: 8px 16px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 8px; cursor: pointer; font-weight: 600;">Kabinetə qayıt</button>
+                    <button id="backToDashboard" style="padding: 10px 18px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 10px; cursor: pointer; font-weight: 600;">Kabinetə qayıt</button>
                 </div>
                 <div id="resultsContainer" style="display: flex; flex-direction: column; gap: 16px; width: 100%;">
                     <p style="text-align: center; color: #94a3b8; padding: 20px;">Nəticələr yüklənir...</p>
@@ -392,11 +391,21 @@ async function renderStudentResultsView() {
     document.getElementById('backToDashboard').addEventListener('click', renderStudentDashboard);
 
     try {
-        const { data: results, error } = await supabase
-            .from('student_results')
-            .select('*')
-            .eq('student_name', currentStudent.name)
-            .eq('student_surname', currentStudent.surname);
+        const [{ data: results, error }, { data: quizzes }] = await Promise.all([
+            supabase
+                .from('student_results')
+                .select('*')
+                .eq('student_name', currentStudent.name)
+                .eq('student_surname', currentStudent.surname),
+            supabase.from('quizzes').select('id, title')
+        ]);
+
+        const quizMap = {};
+        if (quizzes) {
+            quizzes.forEach(q => {
+                quizMap[q.id] = q.title;
+            });
+        }
 
         const container = document.getElementById('resultsContainer');
         if (error || !results || results.length === 0) {
@@ -423,12 +432,14 @@ async function renderStudentResultsView() {
                 blankCount = detailsParsed.filter(d => d.userAnswer === "Cavabsız").length;
             }
 
+            const quizTitle = quizMap[res.quiz_id] || `Sınaq ${res.quiz_id}`;
+
             const cardDiv = document.createElement('div');
             cardDiv.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; gap: 20px; box-sizing: border-box; width: 100%;";
 
             cardDiv.innerHTML = `
                 <div>
-                    <h4 style="font-size: 16px; font-weight: 600; color: #f1f5f9; margin: 0 0 8px 0;">Test ID: #${res.quiz_id}</h4>
+                    <h4 style="font-size: 16px; font-weight: 600; color: #f1f5f9; margin: 0 0 8px 0;">${quizTitle}</h4>
                     <p style="font-size: 14px; color: #cbd5e1; margin: 0 0 4px 0;">Nəticə: <b>${res.score} / ${res.total}</b></p>
                     <div style="font-size: 12px; color: #94a3b8; display: flex; gap: 12px; margin-top: 8px;">
                         <span style="color: #22c55e;">✅ Düz: ${correctCount}</span>
@@ -436,7 +447,6 @@ async function renderStudentResultsView() {
                         <span style="color: #eab308;">⚪ Boş: ${blankCount}</span>
                     </div>
                 </div>
-                <!-- Nəticələr səhifəsindəki dairəvi faiz qırmızı, sarı, yaşıl rəng keçidi ilə -->
                 <div style="width: 65px; height: 65px; border-radius: 50%; background: conic-gradient(#22c55e ${percent}%, #eab308 ${percent}% 80%, #ef4444 0%); display: flex; justify-content: center; align-items: center; position: relative; flex-shrink: 0;">
                     <div style="width: 53px; height: 53px; background: #18152e; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 13px; font-weight: bold; color: #d8b4fe;">
                         ${percent}%
