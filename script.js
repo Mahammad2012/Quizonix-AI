@@ -76,7 +76,6 @@ async function loadQuizFromDatabase(quizId) {
         
         renderQuestion();
 
-        // Timer setup
         const durationMinutes = data.duration || 0;
         if (durationMinutes > 0) {
             timeLeft = durationMinutes * 60;
@@ -201,11 +200,11 @@ async function showResults() {
         details: details
     };
 
-    // 1. Supabase-dəki 'student_results' cədvəlinə məlumatın yazılması
+    // Supabase-ə yazılan JSON formatı təmizləndi
     try {
         const { error } = await supabase.from('student_results').insert([
             {
-                quiz_id: parseInt(currentQuizId) || null,
+                quiz_id: parseInt(currentQuizId) || 0,
                 student_name: studentInfo.name,
                 student_surname: studentInfo.surname,
                 student_class: studentInfo.class,
@@ -214,17 +213,18 @@ async function showResults() {
                 details_json: JSON.stringify(details)
             }
         ]);
-        if (error) console.error("Supabase-ə yazılarkən xəta:", error);
+        
+        if (error) {
+            console.error("Supabase xətası:", error.message);
+        }
     } catch (err) {
-        console.error("Nəticə göndərilmədi:", err);
+        console.error("Sorğu xətası:", err);
     }
 
-    // 2. Android Bridge mövcuddursa tətbiqə ötürülməsi
     if (window.AndroidBridge && typeof window.AndroidBridge.onQuizFinished === 'function') {
         window.AndroidBridge.onQuizFinished(JSON.stringify(resultPayload));
     }
 
-    // 3. Ekranda nəticənin göstərilməsi
     quizContainer.innerHTML = `
         <div style="text-align: center; color: white; padding: 20px;">
             <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 12px; color: #a855f7;">🎉 Sınaq Tamamlandı!</h2>
