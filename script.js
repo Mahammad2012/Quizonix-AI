@@ -224,7 +224,6 @@ async function renderStudentDashboard() {
                     </div>
 
                     <div>
-                        <!-- MR inisialı olan və üzərinə gələndə Gemini işıq effekti işləyən profil dairəsi -->
                         <div id="profileCircle" class="mr-profile-container" style="width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; position: relative;" title="Profil menyusu">
                             <div class="mr-spinning-border"></div>
                             <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #7e22ce, #a855f7); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 15px; color: white; position: relative; z-index: 2;">
@@ -241,7 +240,6 @@ async function renderStudentDashboard() {
             </div>
         </div>
         
-        <!-- Sadə, səliqəli profil menyusu (rəng keçidləri silindi) -->
         <div id="profileDropdown" style="display: none; position: fixed; background: rgba(20, 15, 40, 0.98); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; width: 200px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); z-index: 99999; overflow: hidden;">
             <div style="position: relative; z-index: 2;">
                 <button id="menuMyResults" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; transition: background 0.2s, color 0.2s;">
@@ -266,13 +264,14 @@ async function renderStudentDashboard() {
                 inset: -3px;
                 border-radius: 50%;
                 border: 3px solid transparent;
-                border-top-color: #a855f7;
-                border-right-color: #3b82f6;
-                border-bottom-color: rgba(255, 255, 255, 0.15);
+                /* Qırmızı, Sarı, Yaşıl keçid effekti */
+                border-top-color: #ef4444;
+                border-right-color: #eab308;
+                border-bottom-color: #22c55e;
                 border-left-color: transparent;
                 animation: geminiGlowRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
                 pointer-events: none;
-                filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.7));
+                filter: drop-shadow(0 0 8px rgba(234, 179, 8, 0.7));
                 z-index: 1;
                 display: none;
             }
@@ -432,12 +431,13 @@ async function renderStudentResultsView() {
                     <h4 style="font-size: 16px; font-weight: 600; color: #f1f5f9; margin: 0 0 8px 0;">Test ID: #${res.quiz_id}</h4>
                     <p style="font-size: 14px; color: #cbd5e1; margin: 0 0 4px 0;">Nəticə: <b>${res.score} / ${res.total}</b></p>
                     <div style="font-size: 12px; color: #94a3b8; display: flex; gap: 12px; margin-top: 8px;">
-                        <span style="color: #4ade80;">✅ Düz: ${correctCount}</span>
-                        <span style="color: #f87171;">❌ Səhv: ${incorrectCount}</span>
-                        <span style="color: #fbbf24;">⚪ Boş: ${blankCount}</span>
+                        <span style="color: #22c55e;">✅ Düz: ${correctCount}</span>
+                        <span style="color: #ef4444;">❌ Səhv: ${incorrectCount}</span>
+                        <span style="color: #eab308;">⚪ Boş: ${blankCount}</span>
                     </div>
                 </div>
-                <div style="width: 65px; height: 65px; border-radius: 50%; background: conic-gradient(#7e22ce ${percent}%, rgba(255,255,255,0.1) 0%); display: flex; justify-content: center; align-items: center; position: relative; flex-shrink: 0;">
+                <!-- Nəticələr səhifəsindəki dairəvi faiz qırmızı, sarı, yaşıl rəng keçidi ilə -->
+                <div style="width: 65px; height: 65px; border-radius: 50%; background: conic-gradient(#22c55e ${percent}%, #eab308 ${percent}% 80%, #ef4444 0%); display: flex; justify-content: center; align-items: center; position: relative; flex-shrink: 0;">
                     <div style="width: 53px; height: 53px; background: #18152e; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 13px; font-weight: bold; color: #d8b4fe;">
                         ${percent}%
                     </div>
@@ -661,10 +661,10 @@ async function showResults() {
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; justify-content: center; align-items: center;">
             <div style="width: 100%; max-width: 400px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 20px; text-align: center; color: white;">
-                <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 12px; color: #a855f7;">🎉 Sınaq Tamamlandı!</h2>
-                <div style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+                <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 12px; color: #22c55e;">🎉 Sınaq Tamamlandı!</h2>
+                <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); padding: 16px; border-radius: 12px; margin-bottom: 20px;">
                     <p style="font-size: 16px; margin-bottom: 6px;">İştirakçı: <b>${currentStudent.name} ${currentStudent.surname} (${currentStudent.student_class})</b></p>
-                    <p style="font-size: 20px; font-weight: bold; color: #4ade80;">Nəticə: ${score} / ${total}</p>
+                    <p style="font-size: 20px; font-weight: bold; color: #22c55e;">Nəticə: ${score} / ${total}</p>
                 </div>
                 <button id="backToCabinetBtn" style="padding: 12px 24px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%;">Kabinetə qayıt</button>
             </div>
