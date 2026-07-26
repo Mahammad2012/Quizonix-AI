@@ -26,6 +26,20 @@ let userAnswers = {};
 let timerInterval = null;
 let timeLeft = 0;
 
+function checkSavedSession() {
+    const saved = localStorage.getItem('aquarius_current_student');
+    if (saved) {
+        try {
+            currentStudent = JSON.parse(saved);
+            renderStudentDashboard();
+            return true;
+        } catch (e) {
+            localStorage.removeItem('aquarius_current_student');
+        }
+    }
+    return false;
+}
+
 function renderAuthScreen() {
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; display: flex; justify-content: center; align-items: center; box-sizing: border-box; padding: 20px;">
@@ -113,7 +127,7 @@ function showLoadingScreen(message, callback) {
             @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         </style>
     `;
-    setTimeout(callback, 2000);
+    setTimeout(callback, 1500);
 }
 
 function renderLoginForm() {
@@ -151,6 +165,7 @@ function renderLoginForm() {
                 }
 
                 currentStudent = data;
+                localStorage.setItem('aquarius_current_student', JSON.stringify(data));
                 renderStudentDashboard();
             } catch (err) {
                 alert("Giriş zamanı xəta baş verdi.");
@@ -204,6 +219,7 @@ function renderRegisterForm() {
                 if (error) throw error;
 
                 currentStudent = data;
+                localStorage.setItem('aquarius_current_student', JSON.stringify(data));
                 renderStudentDashboard();
             } catch (err) {
                 alert("Qeydiyyat xətası: " + err.message);
@@ -336,6 +352,7 @@ async function renderStudentDashboard() {
     });
     document.getElementById('menuLogout').addEventListener('click', () => {
         profileDropdown.style.display = 'none';
+        localStorage.removeItem('aquarius_current_student');
         currentStudent = null;
         renderAuthScreen();
     });
@@ -502,6 +519,7 @@ function renderChangePasswordModal() {
             if (error) throw error;
 
             currentStudent.password = newPass;
+            localStorage.setItem('aquarius_current_student', JSON.stringify(currentStudent));
             alert("Şifrəniz uğurla yeniləndi!");
             renderStudentDashboard();
         } catch (err) {
@@ -687,5 +705,7 @@ async function showResults() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-    renderAuthScreen();
+    if (!checkSavedSession()) {
+        renderAuthScreen();
+    }
 });
