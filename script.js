@@ -2,113 +2,238 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 const supabaseUrl = 'https://ebsqtjibhhckbciltzfb.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVic3F0amliaGhja2JjaWx0emZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5OTUyNjUsImV4cCI6MjEwMDU3MTI2NX0.FNMjDFVakfNZxp758wrIPTXQRww6p8DgipsGwMeV0do';
-
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// DOM elementləri
-const studentNameInput = document.getElementById("studentNameInput");
-const studentSurnameInput = document.getElementById("studentSurnameInput");
-const studentClassInput = document.getElementById("studentClassInput");
-const studentPasswordInput = document.getElementById("studentPasswordInput"); // Yeni şifrə xanası
+// DOM Elementləri
+const appContainer = document.getElementById('appContainer') || document.body;
 
-const registerBtn = document.getElementById("registerBtn"); // Qeydiyyat düyməsi
-const loginBtn = document.getElementById("loginBtn");       // Daxil ol düyməsi
-
-const searchSection = document.getElementById("searchSection");
-const quizContainer = document.getElementById("quizContainer");
-const loading = document.getElementById("loading");
-const quizTitle = document.getElementById("quizTitle");
-const questionBox = document.getElementById("questionBox");
-const prevQuestionBtn = document.getElementById("prevQuestionBtn");
-const nextQuestionBtn = document.getElementById("nextQuestionBtn");
-
+let currentStudent = null;
 let currentQuizId = null;
 let currentQuizData = [];
 let currentQuestionIndex = 0;
 let userAnswers = {};
-let studentInfo = {};
 let timerInterval = null;
 let timeLeft = 0;
 
-// URL-dən Test ID-ni avtomatik oxuyuruq (məsələn: ?quizId=1)
-window.addEventListener("DOMContentLoaded", () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    currentQuizId = urlParams.get("quizId") || urlParams.get("id");
-});
+// Başlanğıc ekranını render edirik (Qeydiyyat və Giriş seçimi)
+function renderAuthScreen() {
+    appContainer.innerHTML = `
+        <div style="min-height: 100vh; display: flex; justify-content: center; align-items: center; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px;">
+            <div style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 20px; width: 100%; max-width: 420px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37); color: white;">
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <h1 style="font-size: 26px; font-weight: 700; color: #d8b4fe; margin-bottom: 8px;">🎓 Aquarius Kviz AI</h1>
+                    <p style="font-size: 14px; color: #cbd5e1;">Zəhmət olmasa hesabınıza daxil olun və ya qeydiyyatdan keçin</p>
+                </div>
 
-// 1. QEYDİYYATDAN KEÇ
-registerBtn.addEventListener("click", async () => {
-    const name = studentNameInput.value.trim();
-    const surname = studentSurnameInput.value.trim();
-    const studentClass = studentClassInput.value.trim();
-    const password = studentPasswordInput.value.trim();
+                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                    <button id="showLoginTab" style="flex: 1; padding: 10px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">Giriş</button>
+                    <button id="showRegisterTab" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">Qeydiyyat</button>
+                </div>
 
-    if (!name || !surname || !studentClass || !password) {
-        return alert("Zəhmət olmasa bütün sahələri (Ad, Soyad, Sinif və Şifrə) doldurun!");
-    }
+                <div id="formContainer"></div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('showLoginTab').addEventListener('click', (e) => {
+        e.target.style.background = '#7e22ce';
+        e.target.style.color = 'white';
+        document.getElementById('showRegisterTab').style.background = 'rgba(255,255,255,0.1)';
+        document.getElementById('showRegisterTab').style.color = '#cbd5e1';
+        renderLoginForm();
+    });
+
+    document.getElementById('showRegisterTab').addEventListener('click', (e) => {
+        e.target.style.background = '#7e22ce';
+        e.target.style.color = 'white';
+        document.getElementById('showLoginTab').style.background = 'rgba(255,255,255,0.1)';
+        document.getElementById('showLoginTab').style.color = '#cbd5e1';
+        renderRegisterForm();
+    });
+
+    renderLoginForm();
+}
+
+function inputStyle() {
+    return "width: 100%; padding: 12px 14px; margin-bottom: 14px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; font-size: 14px; outline: none;";
+}
+
+function buttonStyle() {
+    return "width: 100%; padding: 12px; background: linear-gradient(135deg, #9333ea, #c084fc); color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; transition: 0.3s;";
+}
+
+function renderLoginForm() {
+    const container = document.getElementById('formContainer');
+    container.innerHTML = `
+        <form id="loginForm">
+            <input type="text" id="loginName" placeholder="Adınız" required style="${inputStyle()}">
+            <input type="text" id="loginSurname" placeholder="Soyadınız" required style="${inputStyle()}">
+            <input type="password" id="loginPassword" placeholder="Şifrəniz (məsələn: P@ss123)" required style="${inputStyle()}">
+            <button type="submit" style="${buttonStyle()}">Daxil Ol</button>
+        </form>
+    `;
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('loginName').value.trim();
+        const surname = document.getElementById('loginSurname').value.trim();
+        const password = document.getElementById('loginPassword').value.trim();
+
+        try {
+            const { data, error } = await supabase
+                .from('students_account')
+                .select('*')
+                .eq('name', name)
+                .eq('surname', surname)
+                .eq('password', password)
+                .single();
+
+            if (error || !data) {
+                alert("Ad, Soyad və ya şifrə yanlışdır!");
+                return;
+            }
+
+            currentStudent = data;
+            renderStudentDashboard();
+        } catch (err) {
+            alert("Giriş zamanı xəta baş verdi. Zəhmət olmasa yenidən yoxlayın.");
+        }
+    });
+}
+
+function renderRegisterForm() {
+    const container = document.getElementById('formContainer');
+    container.innerHTML = `
+        <form id="registerForm">
+            <input type="text" id="regName" placeholder="Adınız" required style="${inputStyle()}">
+            <input type="text" id="regSurname" placeholder="Soyadınız" required style="${inputStyle()}">
+            <input type="text" id="regClass" placeholder="Sinfiniz (məsələn: 10A)" required style="${inputStyle()}">
+            <input type="password" id="regPassword" placeholder="Şifrə yarat (məsələn: P@ss123)" required style="${inputStyle()}">
+            <button type="submit" style="${buttonStyle()}">Qeydiyyatdan Keç</button>
+        </form>
+    `;
+
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const name = document.getElementById('regName').value.trim();
+        const surname = document.getElementById('regSurname').value.trim();
+        const student_class = document.getElementById('regClass').value.trim();
+        const password = document.getElementById('regPassword').value.trim();
+
+        try {
+            // Əvvəlcə belə hesabın olub-olmadığını yoxlayaq
+            const { data: existing } = await supabase
+                .from('students_account')
+                .select('*')
+                .eq('name', name)
+                .eq('surname', surname)
+                .single();
+
+            if (existing) {
+                alert("Bu ad və soyadla artıq hesab mövcuddur. Zəhmət olmasa daxil olun.");
+                return;
+            }
+
+            const { data, error } = await supabase
+                .from('students_account')
+                .insert([{ name, surname, student_class, password }])
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            alert("Qeydiyyat uğurla tamamlandı! Hesabınıza daxil olursunuz.");
+            currentStudent = data;
+            renderStudentDashboard();
+        } catch (err) {
+            alert("Qeydiyyat xətası: " + err.message);
+        }
+    });
+}
+
+// Şagird Kabineti (Aktiv sınaqların siyahısı)
+async function renderStudentDashboard() {
+    appContainer.innerHTML = `
+        <div style="min-height: 100vh; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; color: white;">
+            <div style="max-width: 700px; margin: 0 auto;">
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); backdrop-filter: blur(12px); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 24px;">
+                    <div>
+                        <h2 style="font-size: 20px; color: #d8b4fe; margin-bottom: 4px;">Xoş gəldiniz, ${currentStudent.name} ${currentStudent.surname}</h2>
+                        <p style="font-size: 13px; color: #94a3b8;">Sinif: ${currentStudent.student_class}</p>
+                    </div>
+                    <button id="logoutBtn" style="padding: 8px 16px; background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4); color: #f87171; border-radius: 8px; cursor: pointer; font-weight: 600;">Çıxış</button>
+                </div>
+
+                <h3 style="font-size: 18px; margin-bottom: 16px; color: #e2e8f0;">📝 Mövcud Sınaqlar</h3>
+                <div id="quizzesList" style="display: flex; flex-direction: column; gap: 12px;">
+                    <p style="text-align: center; color: #94a3b8; padding: 20px;">Sınaqlar yüklənir...</p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+        currentStudent = null;
+        renderAuthScreen();
+    });
 
     try {
-        loading.classList.remove("hidden");
-        // Əvvəlcə belə istifadəçinin olub-olmadığını yoxlaya bilərik və ya birbaşa qeydiyyat edərik
-        const { error } = await supabase.from('students_account').insert([
-            { name, surname, student_class: studentClass, password }
-        ]);
+        const { data: quizzes, error } = await supabase
+            .from('quizzes')
+            .select('id, title, duration');
 
-        if (error) throw error;
+        const listContainer = document.getElementById('quizzesList');
 
-        alert("Uğurla qeydiyyatdan keçdiniz! İndi 'Daxil ol' düyməsini sıxın.");
-    } catch (err) {
-        alert("Qeydiyyat xətası: " + err.message);
-    } finally {
-        loading.classList.add("hidden");
-    }
-});
-
-// 2. DAXİL OL
-loginBtn.addEventListener("click", async () => {
-    const name = studentNameInput.value.trim();
-    const surname = studentSurnameInput.value.trim();
-    const studentClass = studentClassInput.value.trim();
-    const password = studentPasswordInput.value.trim();
-
-    if (!name || !surname || !studentClass || !password) {
-        return alert("Daxil olmaq üçün Ad, Soyad, Sinif və Şifrənizi daxil edin!");
-    }
-
-    try {
-        loading.classList.remove("hidden");
-        
-        // students_account cədvəlində məlumatları yoxlayırıq
-        const { data, error } = await supabase
-            .from('students_account')
-            .select('*')
-            .eq('name', name)
-            .eq('surname', surname)
-            .eq('student_class', studentClass)
-            .eq('password', password)
-            .single();
-
-        if (error || !data) {
-            alert("Belə bir hesab tapılmadı və ya şifrə səhvdir! Zəhmət olmasa əvvəlcə qeydiyyatdan keçin.");
+        if (error || !quizzes || quizzes.length === 0) {
+            listContainer.innerHTML = `<p style="text-align: center; color: #94a3b8; background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px;">Hazırda aktiv sınaq mövcud deyil.</p>`;
             return;
         }
 
-        studentInfo = { name, surname, class: studentClass };
-        
-        // Əgər URL-də test ID yoxdursa default olaraq 1 götürürük
-        if (!currentQuizId) currentQuizId = 1; 
+        listContainer.innerHTML = '';
+        quizzes.forEach(quiz => {
+            const card = document.createElement('div');
+            card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 18px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; transition: 0.3s;";
+            card.innerHTML = `
+                <div>
+                    <h4 style="font-size: 16px; font-weight: 600; color: #f1f5f9; margin-bottom: 4px;">${quiz.title || `Test #${quiz.id}`}</h4>
+                    <p style="font-size: 13px; color: #a78bfa;">⏱️ Müddət: ${quiz.duration ? quiz.duration + ' dəqiqə' : 'Məhdudiyyət yoxdur'}</p>
+                </div>
+                <button data-id="${quiz.id}" class="startQuizBtn" style="padding: 10px 20px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">Sınağa Başla</button>
+            `;
+            listContainer.appendChild(card);
+        });
 
-        loadQuizFromDatabase(currentQuizId);
+        document.querySelectorAll('.startQuizBtn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const quizId = e.target.getAttribute('data-id');
+                loadAndStartQuiz(quizId);
+            });
+        });
 
     } catch (err) {
-        alert("Giriş xətası: Hesab tapılmadı və ya məlumatlar yanlışdır.");
-    } finally {
-        loading.classList.add("hidden");
+        document.getElementById('quizzesList').innerHTML = `<p style="text-align: center; color: #f87171;">Sınaqları yükləmək mümkün olmadı.</p>`;
     }
-});
+}
 
-async function loadQuizFromDatabase(quizId) {
-    loading.classList.remove("hidden");
+// Sınaq interfeysi
+async function loadAndStartQuiz(quizId) {
+    appContainer.innerHTML = `
+        <div style="min-height: 100vh; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; display: flex; justify-content: center; align-items: center;">
+            <div style="width: 100%; max-width: 600px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 24px; border-radius: 20px; color: white;">
+                <div id="quizHeader" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                    <h2 id="quizTitle" style="font-size: 18px; color: #d8b4fe;">Sınaq yüklənir...</h2>
+                </div>
+                <div id="timerDisplay" style="display: flex; justify-content: center; align-items: center; background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); padding: 8px 16px; border-radius: 12px; font-weight: bold; color: #f87171; margin: 0 auto 16px auto; width: fit-content; font-size: 15px;"></div>
+                <div id="questionBox" style="margin-bottom: 20px; font-size: 16px; line-height: 1.5;"></div>
+                <div style="display: flex; justify-content: space-between; gap: 10px;">
+                    <button id="prevQuestionBtn" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.1); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; display: none;">Geri</button>
+                    <button id="nextQuestionBtn" style="flex: 1; padding: 10px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">Növbəti</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    currentQuizId = quizId;
     try {
         const { data, error } = await supabase
             .from('quizzes')
@@ -118,7 +243,7 @@ async function loadQuizFromDatabase(quizId) {
 
         if (error || !data) throw new Error("Test tapılmadı.");
 
-        quizTitle.textContent = data.title || `Test #${quizId}`;
+        document.getElementById('quizTitle').textContent = data.title || `Test #${quizId}`;
 
         let parsedData = data.questions_data;
         if (typeof parsedData === 'string') {
@@ -126,13 +251,10 @@ async function loadQuizFromDatabase(quizId) {
         }
 
         currentQuizData = Array.isArray(parsedData) ? parsedData : [];
-        if (currentQuizData.length === 0) throw new Error("Bu testdə suallar mövcud deyil.");
+        if (currentQuizData.length === 0) throw new Error("Bu testdə suallar yoxdur.");
 
         currentQuestionIndex = 0;
         userAnswers = {};
-        searchSection.classList.add("hidden");
-        quizContainer.classList.remove("hidden");
-        
         renderQuestion();
 
         const durationMinutes = data.duration || 0;
@@ -140,33 +262,22 @@ async function loadQuizFromDatabase(quizId) {
             timeLeft = durationMinutes * 60;
             startTimer();
         } else {
-            let timerEl = document.getElementById('timerDisplay');
-            if (!timerEl) {
-                timerEl = document.createElement('div');
-                timerEl.id = 'timerDisplay';
-                timerEl.style.cssText = "display: flex; justify-content: center; align-items: center; background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); padding: 8px 16px; border-radius: 12px; font-weight: bold; color: #f87171; margin: 0 auto 16px auto; width: fit-content; font-size: 15px;";
-                timerEl.textContent = "Vaxt məhdudiyyəti yoxdur";
-                quizContainer.prepend(timerEl);
-            }
+            document.getElementById('timerDisplay').textContent = "Vaxt məhdudiyyəti yoxdur";
         }
+
+        document.getElementById('nextQuestionBtn').addEventListener('click', handleNextQuestion);
+        document.getElementById('prevQuestionBtn').addEventListener('click', handlePrevQuestion);
+
     } catch (err) {
         alert("Xəta: " + err.message);
-    } finally {
-        loading.classList.add("hidden");
+        renderStudentDashboard();
     }
 }
 
 function startTimer() {
     clearInterval(timerInterval);
-    let timerEl = document.getElementById('timerDisplay');
-    if (!timerEl) {
-        timerEl = document.createElement('div');
-        timerEl.id = 'timerDisplay';
-        quizContainer.prepend(timerEl);
-    }
+    const timerEl = document.getElementById('timerDisplay');
     
-    timerEl.style.cssText = "display: flex; justify-content: center; align-items: center; background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); padding: 8px 16px; border-radius: 12px; font-weight: bold; color: #f87171; margin: 0 auto 16px auto; width: fit-content; font-size: 15px;";
-
     timerInterval = setInterval(() => {
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
@@ -182,49 +293,51 @@ function startTimer() {
 }
 
 function renderQuestion() {
-    if (!currentQuizData || currentQuizData.length === 0) return;
     const q = currentQuizData[currentQuestionIndex];
     let optionsHtml = "";
-    const rawOptions = q.options || q.choices || q.variants || [];
-    const options = Array.isArray(rawOptions) ? rawOptions : [];
+    const options = Array.isArray(q.options || q.choices || q.variants) ? (q.options || q.choices || q.variants) : [];
 
     options.forEach((opt, index) => {
-        const isSelected = userAnswers[currentQuestionIndex] === index ? "selected" : "";
-        optionsHtml += `<button class="option-btn ${isSelected}" onclick="selectOption(${index})">${opt}</button>`;
+        const isSelected = userAnswers[currentQuestionIndex] === index ? "background: rgba(126, 34, 206, 0.5); border-color: #a855f7;" : "background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1);";
+        optionsHtml += `<button class="option-btn" data-index="${index}" style="width: 100%; text-align: left; padding: 12px 16px; margin-bottom: 10px; ${isSelected} border-radius: 10px; color: white; border-style: solid; border-width: 1px; cursor: pointer; transition: 0.2s;">${opt}</button>`;
     });
 
-    const questionText = q.question || q.text || q.prompt || q.title || (typeof q === 'string' ? q : null);
+    const questionText = q.question || q.text || q.prompt || q.title || (typeof q === 'string' ? q : "");
 
-    questionBox.innerHTML = `
+    document.getElementById('questionBox').innerHTML = `
         <p style="margin-bottom: 8px; font-weight: 600; font-size: 13px; color: #d8b4fe;">Sual ${currentQuestionIndex + 1} / ${currentQuizData.length}</p>
-        <p style="margin-bottom: 12px;">${questionText || ""}</p>
-        ${optionsHtml}
+        <p style="margin-bottom: 16px; font-size: 15px;">${questionText}</p>
+        <div>${optionsHtml}</div>
     `;
 
-    prevQuestionBtn.style.display = currentQuestionIndex === 0 ? "none" : "block";
-    nextQuestionBtn.textContent = currentQuestionIndex === currentQuizData.length - 1 ? "Bitir" : "Növbəti";
+    document.querySelectorAll('.option-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const idx = parseInt(e.currentTarget.getAttribute('data-index'));
+            userAnswers[currentQuestionIndex] = idx;
+            renderQuestion();
+        });
+    });
+
+    const prevBtn = document.getElementById('prevQuestionBtn');
+    prevBtn.style.display = currentQuestionIndex === 0 ? "none" : "block";
+    document.getElementById('nextQuestionBtn').textContent = currentQuestionIndex === currentQuizData.length - 1 ? "Bitir" : "Növbəti";
 }
 
-window.selectOption = function(optionIndex) {
-    userAnswers[currentQuestionIndex] = optionIndex;
-    renderQuestion();
-};
-
-nextQuestionBtn.addEventListener("click", () => {
+function handleNextQuestion() {
     if (currentQuestionIndex < currentQuizData.length - 1) {
         currentQuestionIndex++;
         renderQuestion();
     } else {
         showResults();
     }
-});
+}
 
-prevQuestionBtn.addEventListener("click", () => {
+function handlePrevQuestion() {
     if (currentQuestionIndex > 0) {
         currentQuestionIndex--;
         renderQuestion();
     }
-});
+}
 
 async function showResults() {
     clearInterval(timerInterval);
@@ -248,40 +361,52 @@ async function showResults() {
     });
 
     const resultPayload = {
-        student: studentInfo,
+        student: currentStudent,
         score: score,
         total: total,
         details: details
     };
 
+    // Supabase student_results cədvəlinə yazırıq
     try {
         await supabase.from('student_results').insert([
             {
                 quiz_id: parseInt(currentQuizId) || 0,
-                student_name: studentInfo.name,
-                student_surname: studentInfo.surname,
-                student_class: studentInfo.class,
+                student_name: currentStudent.name,
+                student_surname: currentStudent.surname,
+                student_class: currentStudent.student_class,
                 score: score,
                 total: total,
                 details_json: JSON.stringify(details)
             }
         ]);
     } catch (err) {
-        console.error("Nəticə yazılmadı:", err);
+        console.error("Nəticə yazılarkən xəta:", err);
     }
 
     if (window.AndroidBridge && typeof window.AndroidBridge.onQuizFinished === 'function') {
         window.AndroidBridge.onQuizFinished(JSON.stringify(resultPayload));
     }
 
-    quizContainer.innerHTML = `
-        <div style="text-align: center; color: white; padding: 20px;">
-            <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 12px; color: #a855f7;">🎉 Sınaq Tamamlandı!</h2>
-            <div style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); padding: 16px; border-radius: 12px; margin-bottom: 20px;">
-                <p style="font-size: 18px; margin-bottom: 6px;">Ad Soyad: <b>${studentInfo.name} ${studentInfo.surname} (${studentInfo.class})</b></p>
-                <p style="font-size: 20px; font-weight: bold; color: #4ade80;">Nəticə: ${score} / ${total}</p>
+    appContainer.innerHTML = `
+        <div style="min-height: 100vh; background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; display: flex; justify-content: center; align-items: center;">
+            <div style="width: 100%; max-width: 450px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 20px; text-align: center; color: white;">
+                <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 12px; color: #a855f7;">🎉 Sınaq Tamamlandı!</h2>
+                <div style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+                    <p style="font-size: 16px; margin-bottom: 6px;">İştirakçı: <b>${currentStudent.name} ${currentStudent.surname} (${currentStudent.student_class})</b></p>
+                    <p style="font-size: 20px; font-weight: bold; color: #4ade80;">Nəticə: ${score} / ${total}</p>
+                </div>
+                <button id="backToCabinetBtn" style="padding: 12px 24px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%;">Kabinetə qayıt</button>
             </div>
-            <button onclick="location.reload()" style="background: #7e22ce; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">Yeni Sınaq</button>
         </div>
     `;
+
+    document.getElementById('backToCabinetBtn').addEventListener('click', () => {
+        renderStudentDashboard();
+    });
 }
+
+// Tətbiq başladığı zaman auth səhifəsini çağırırıq
+window.addEventListener('DOMContentLoaded', () => {
+    renderAuthScreen();
+});
