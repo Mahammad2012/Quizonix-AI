@@ -218,7 +218,7 @@ async function renderStudentDashboard() {
 
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; flex-direction: column; align-items: center;">
-            <div style="width: 100%; max-width: 500px;">
+            <div style="width: 100%; max-width: 400px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); backdrop-filter: blur(12px); padding: 16px 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 24px;">
                     <div>
                         <h2 style="font-size: 18px; color: #d8b4fe; margin: 0 0 4px 0;">Xoş gəldiniz, ${currentStudent.name} ${currentStudent.surname}</h2>
@@ -294,7 +294,6 @@ async function renderStudentDashboard() {
         listContainer.innerHTML = '';
         quizzes.forEach(quiz => {
             const card = document.createElement('div');
-            // Sınaq kartı düzbucaqlı formada və daha yığcam (mütənasib) edilməsi üçün padding və struktur tənzimləndi
             card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 16px 20px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box;";
             card.innerHTML = `
                 <div>
@@ -319,7 +318,7 @@ async function renderStudentDashboard() {
 async function renderStudentResultsView() {
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; flex-direction: column; align-items: center;">
-            <div style="width: 100%; max-width: 500px;">
+            <div style="width: 100%; max-width: 400px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                     <h2 style="font-size: 20px; color: #d8b4fe; margin: 0;">📊 Sənin Nəticələrin</h2>
                     <button id="backToDashboard" style="padding: 8px 16px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 8px; cursor: pointer; font-weight: 600;">Kabinetə qayıt</button>
@@ -441,7 +440,7 @@ function renderChangePasswordModal() {
 async function loadAndStartQuiz(quizId) {
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; justify-content: center; align-items: center;">
-            <div style="width: 100%; max-width: 500px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 24px; border-radius: 20px; color: white;">
+            <div style="width: 100%; max-width: 400px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 24px; border-radius: 20px; color: white;">
                 <div id="quizHeader" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                     <h2 id="quizTitle" style="font-size: 18px; color: #d8b4fe; margin: 0;">Sınaq yüklənir...</h2>
                 </div>
@@ -600,7 +599,7 @@ async function showResults() {
 
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; justify-content: center; align-items: center;">
-            <div style="width: 100%; max-width: 450px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 20px; text-align: center; color: white;">
+            <div style="width: 100%; max-width: 400px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 20px; text-align: center; color: white;">
                 <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 12px; color: #a855f7;">🎉 Sınaq Tamamlandı!</h2>
                 <div style="background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); padding: 16px; border-radius: 12px; margin-bottom: 20px;">
                     <p style="font-size: 16px; margin-bottom: 6px;">İştirakçı: <b>${currentStudent.name} ${currentStudent.surname} (${currentStudent.student_class})</b></p>
