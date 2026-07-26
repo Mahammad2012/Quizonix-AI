@@ -226,7 +226,7 @@ async function renderStudentDashboard() {
                     </div>
 
                     <div>
-                        <div id="profileCircle" style="width: 45px; height: 45px; background: linear-gradient(135deg, #7e22ce, #a855f7); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 16px; cursor: pointer; border: 2px solid rgba(255,255,255,0.2);">
+                        <div id="profileCircle" style="width: 45px; height: 45px; background: linear-gradient(135deg, #7e22ce, #a855f7); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 16px; cursor: pointer; border: 2px solid rgba(255,255,255,0.2); position: relative; transition: 0.3s;" title="Profil menyusu">
                             ${initials}
                         </div>
                     </div>
@@ -240,10 +240,31 @@ async function renderStudentDashboard() {
         </div>
         
         <div id="profileDropdown" style="display: none; position: fixed; background: rgba(20, 15, 40, 0.98); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; width: 200px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); z-index: 99999; overflow: hidden;">
-            <button id="menuMyResults" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; transition: background 0.2s;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"></path><path d="M12 20V4"></path><path d="M6 20v-6"></path></svg>Nəticələrim</button>
-            <button id="menuChangePassword" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; transition: background 0.2s;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Şifrəni dəyişdir</button>
-            <button id="menuLogout" style="width: 100%; padding: 12px 16px; background: none; border: none; color: #f87171; text-align: left; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 10px; transition: background 0.2s;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>Çıxış et</button>
+            <button id="menuMyResults" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; transition: background 0.2s, color 0.2s;">
+                <img src="https://api.iconify.design/lucide:bar-chart-3.svg?color=%23a855f7" width="18" height="18" alt="Nəticələr" style="flex-shrink: 0;" /> Nəticələrim
+            </button>
+            <button id="menuChangePassword" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; transition: background 0.2s, color 0.2s;">
+                <img src="https://api.iconify.design/lucide:key-round.svg?color=%23a855f7" width="18" height="18" alt="Şifrə" style="flex-shrink: 0;" /> Şifrəni dəyişdir
+            </button>
+            <button id="menuLogout" style="width: 100%; padding: 12px 16px; background: none; border: none; color: #f87171; text-align: left; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 10px; transition: background 0.2s, color 0.2s;">
+                <img src="https://api.iconify.design/lucide:log-out.svg?color=%23f87171" width="18" height="18" alt="Çıxış" style="flex-shrink: 0;" /> Çıxış et
+            </button>
         </div>
+        
+        <style>
+            @keyframes borderRotate {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            .spinning-border {
+                position: absolute;
+                inset: -5px;
+                border-radius: 50%;
+                border: 3px solid transparent;
+                animation: borderRotate 1.5s linear infinite;
+                pointer-events: none;
+            }
+        </style>
     `;
 
     const profileCircle = document.getElementById('profileCircle');
@@ -253,13 +274,68 @@ async function renderStudentDashboard() {
     const menuChangePassword = document.getElementById('menuChangePassword');
     const menuLogout = document.getElementById('menuLogout');
 
+    // Hover effektləri (klikləmə efekti kimi rəng dəyişməsi)
     [menuMyResults, menuChangePassword].forEach(btn => {
-        btn.addEventListener('mouseenter', () => btn.style.background = 'rgba(126, 34, 206, 0.25)');
-        btn.addEventListener('mouseleave', () => btn.style.background = 'none');
+        btn.addEventListener('mouseenter', () => {
+            btn.style.background = '#7e22ce';
+            btn.style.color = '#ffffff';
+        });
+        btn.addEventListener('mouseleave', () => {
+            btn.style.background = 'none';
+            btn.style.color = '#ffffff';
+        });
     });
 
-    menuLogout.addEventListener('mouseenter', () => menuLogout.style.background = 'rgba(248, 113, 113, 0.2)');
-    menuLogout.addEventListener('mouseleave', () => menuLogout.style.background = 'none');
+    menuLogout.addEventListener('mouseenter', () => {
+        menuLogout.style.background = '#dc2626';
+        menuLogout.style.color = '#ffffff';
+    });
+    menuLogout.addEventListener('mouseleave', () => {
+        menuLogout.style.background = 'none';
+        menuLogout.style.color = '#f87171';
+    });
+
+    // MR üzərinə gələndə nəticəyə görə fırlanan rəngli dairə effekti
+    profileCircle.addEventListener('mouseenter', async () => {
+        try {
+            const { data: results } = await supabase
+                .from('student_results')
+                .select('score, total')
+                .eq('student_name', currentStudent.name)
+                .eq('student_surname', currentStudent.surname);
+
+            let borderColor = '#fbbf24'; // default orta (sarı)
+            if (results && results.length > 0) {
+                // Ən son nəticəni və ya ortalamanı hesablayaq
+                const lastRes = results[results.length - 1];
+                const percent = (lastRes.score / lastRes.total) * 100;
+                if (percent < 50) {
+                    borderColor = '#ef4444'; // Pis (qırmızı)
+                } else if (percent >= 80) {
+                    borderColor = '#22c55e'; // Əla (yaşıl)
+                } else {
+                    borderColor = '#eab308'; // Orta (sarı)
+                }
+            }
+
+            let borderEl = document.getElementById('spinningBorder');
+            if (!borderEl) {
+                borderEl = document.createElement('div');
+                borderEl.id = 'spinningBorder';
+                borderEl.className = 'spinning-border';
+                profileCircle.appendChild(borderEl);
+            }
+            borderEl.style.borderTopColor = borderColor;
+            borderEl.style.borderRightColor = 'transparent';
+            borderEl.style.borderBottomColor = 'transparent';
+            borderEl.style.borderLeftColor = 'transparent';
+        } catch(e) {}
+    });
+
+    profileCircle.addEventListener('mouseleave', () => {
+        const borderEl = document.getElementById('spinningBorder');
+        if (borderEl) borderEl.remove();
+    });
 
     profileCircle.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -579,7 +655,6 @@ async function showResults() {
     const total = currentQuizData.length;
     const details = [];
 
-    currentQuizData.cols = currentQuizData.cols || []; // safe guard
     currentQuizData.forEach((q, idx) => {
         const userAnsIdx = userAnswers[idx];
         const correctAnsIdx = q.correctAnswer !== undefined ? q.correctAnswer : q.correct;
