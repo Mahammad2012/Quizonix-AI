@@ -258,13 +258,13 @@ async function renderStudentDashboard() {
         
         <div id="profileDropdown" style="display: none; position: fixed; background: rgba(20, 15, 40, 0.98); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; width: 200px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); z-index: 99999; overflow: hidden;">
             <div style="position: relative; z-index: 2;">
-                <button id="menuMyResults" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; transition: background 0.2s, color 0.2s;">
+                <button id="menuMyResults" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px;">
                     <img src="https://api.iconify.design/lucide:bar-chart-3.svg?color=%23a855f7" width="18" height="18" alt="Nəticələr" style="flex-shrink: 0;" /> Nəticələrim
                 </button>
-                <button id="menuChangePassword" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; transition: background 0.2s, color 0.2s;">
+                <button id="menuChangePassword" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px;">
                     <img src="https://api.iconify.design/lucide:key-round.svg?color=%23a855f7" width="18" height="18" alt="Şifrə" style="flex-shrink: 0;" /> Şifrəni dəyişdir
                 </button>
-                <button id="menuLogout" style="width: 100%; padding: 12px 16px; background: none; border: none; color: #f87171; text-align: left; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 10px; transition: background 0.2s, color 0.2s;">
+                <button id="menuLogout" style="width: 100%; padding: 12px 16px; background: none; border: none; color: #f87171; text-align: left; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 10px;">
                     <img src="https://api.iconify.design/lucide:log-out.svg?color=%23f87171" width="18" height="18" alt="Çıxış" style="flex-shrink: 0;" /> Çıxış et
                 </button>
             </div>
@@ -299,34 +299,9 @@ async function renderStudentDashboard() {
     const profileCircle = document.getElementById('profileCircle');
     const profileDropdown = document.getElementById('profileDropdown');
 
-    const menuMyResults = document.getElementById('menuMyResults');
-    const menuChangePassword = document.getElementById('menuChangePassword');
-    const menuLogout = document.getElementById('menuLogout');
-
-    [menuMyResults, menuChangePassword].forEach(btn => {
-        btn.addEventListener('mouseenter', () => {
-            btn.style.background = '#7e22ce';
-            btn.style.color = '#ffffff';
-        });
-        btn.addEventListener('mouseleave', () => {
-            btn.style.background = 'none';
-            btn.style.color = '#ffffff';
-        });
-    });
-
-    menuLogout.addEventListener('mouseenter', () => {
-        menuLogout.style.background = '#dc2626';
-        menuLogout.style.color = '#ffffff';
-    });
-    menuLogout.addEventListener('mouseleave', () => {
-        menuLogout.style.background = 'none';
-        menuLogout.style.color = '#f87171';
-    });
-
     profileCircle.addEventListener('click', (e) => {
         e.stopPropagation();
         const rect = profileCircle.getBoundingClientRect();
-        
         if (profileDropdown.style.display === 'block') {
             profileDropdown.style.display = 'none';
         } else {
@@ -473,7 +448,7 @@ async function renderStudentResultsView() {
                         </div>
                     </div>
                 </div>
-                <button data-quizid="${res.quiz_id}" data-resultid="${res.id}" class="reviewDetailsBtn" style="width: 100%; padding: 8px; background: rgba(126, 34, 206, 0.3); border: 1px solid rgba(168, 85, 247, 0.4); color: #d8b4fe; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; transition: 0.2s;">🔍 Suallara Bax</button>
+                <button data-quizid="${res.quiz_id}" data-resultid="${res.id}" class="reviewDetailsBtn" style="width: 100%; padding: 8px; background: rgba(126, 34, 206, 0.3); border: 1px solid rgba(168, 85, 247, 0.4); color: #d8b4fe; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px;">🔍 Suallara Bax</button>
             `;
 
             container.appendChild(cardDiv);
@@ -532,21 +507,46 @@ function renderDetailedReview(quizObj, resultItem) {
         const isCorrect = detailItem ? detailItem.isCorrect : false;
 
         let correctAnsText = "Təyin olunmayıb";
-        if (correctAnswers && Array.isArray(correctAnswers) && correctAnswers[idx]) {
-            const cIdx = correctAnswers[idx].correctAnswerIndex !== undefined 
-                ? correctAnswers[idx].correctAnswerIndex 
-                : (correctAnswers[idx].correctAnswer !== undefined ? correctAnswers[idx].correctAnswer : null);
-            if (cIdx !== null && options[cIdx]) {
-                correctAnsText = options[cIdx];
-            } else if (correctAnswers[idx].correctAnswer) {
-                correctAnsText = correctAnswers[idx].correctAnswer;
+        
+        // Həm obyekt formasını (məsələn: {"1": "B"}), həm də indeks/açar strukturlarını dəstəkləyirik
+        let rawCA = null;
+        if (correctAnswers) {
+            if (Array.isArray(correctAnswers) && correctAnswers[idx]) {
+                rawCA = correctAnswers[idx].correctAnswerIndex !== undefined ? correctAnswers[idx].correctAnswerIndex : correctAnswers[idx].correctAnswer;
+            } else if (typeof correctAnswers === 'object') {
+                rawCA = correctAnswers[idx + 1] !== undefined ? correctAnswers[idx + 1] : correctAnswers[idx];
             }
-        } else if (q.correctAnswer !== undefined && options[q.correctAnswer]) {
-            correctAnsText = options[q.correctAnswer];
+        }
+
+        if (rawCA !== null && rawCA !== undefined) {
+            if (typeof rawCA === 'number' && options[rawCA]) {
+                correctAnsText = options[rawCA];
+            } else if (typeof rawCA === 'string') {
+                // Əgər hərf (məsələn "A", "B", "C") və ya birbaşa mətn kimi gəlibsə
+                const upper = rawCA.toUpperCase();
+                const charCode = upper.charCodeAt(0);
+                if (charCode >= 65 && charCode <= 90) {
+                    const letterIdx = charCode - 65;
+                    if (options[letterIdx]) {
+                        correctAnsText = options[letterIdx];
+                    } else {
+                        correctAnsText = rawCA;
+                    }
+                } else {
+                    correctAnsText = rawCA;
+                }
+            }
+        } else if (q.correctAnswer !== undefined) {
+            const qca = q.correctAnswer;
+            if (typeof qca === 'number' && options[qca]) {
+                correctAnsText = options[qca];
+            } else {
+                correctAnsText = qca;
+            }
         }
 
         let optionsHtml = "";
-        options.forEach((opt, oIdx) => {
+        options.forEach((opt) => {
             let optStyle = "background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white;";
             const isUserChoice = (userAnsText === opt);
             const isCorrectChoice = (correctAnsText === opt);
@@ -788,15 +788,34 @@ async function showResults() {
             const rawOptions = q.options || q.choices || q.variants || [];
             
             let correctAnsIdx = 0;
-            if (serverCorrectAnswers && Array.isArray(serverCorrectAnswers) && serverCorrectAnswers[idx]) {
-                correctAnsIdx = serverCorrectAnswers[idx].correctAnswerIndex !== undefined 
-                    ? serverCorrectAnswers[idx].correctAnswerIndex 
-                    : (serverCorrectAnswers[idx].correctAnswer !== undefined ? serverCorrectAnswers[idx].correctAnswer : 0);
-            } else {
-                correctAnsIdx = q.correctAnswer !== undefined ? q.correctAnswer : 0;
+            let rawCA = null;
+
+            if (serverCorrectAnswers) {
+                if (Array.isArray(serverCorrectAnswers) && serverCorrectAnswers[idx]) {
+                    rawCA = serverCorrectAnswers[idx].correctAnswerIndex !== undefined ? serverCorrectAnswers[idx].correctAnswerIndex : serverCorrectAnswers[idx].correctAnswer;
+                } else if (typeof serverCorrectAnswers === 'object') {
+                    rawCA = serverCorrectAnswers[idx + 1] !== undefined ? serverCorrectAnswers[idx + 1] : serverCorrectAnswers[idx];
+                }
             }
 
-            const isCorrect = userAnsIdx === parseInt(correctAnsIdx);
+            if (rawCA !== null && rawCA !== undefined) {
+                if (typeof rawCA === 'number') {
+                    correctAnsIdx = rawCA;
+                } else if (typeof rawCA === 'string') {
+                    const upper = rawCA.toUpperCase();
+                    const charCode = upper.charCodeAt(0);
+                    if (charCode >= 65 && charCode <= 90) {
+                        correctAnsIdx = charCode - 65;
+                    } else {
+                        const parsedNum = parseInt(rawCA);
+                        if (!isNaN(parsedNum)) correctAnsIdx = parsedNum;
+                    }
+                }
+            } else if (q.correctAnswer !== undefined) {
+                correctAnsIdx = q.correctAnswer;
+            }
+
+            const isCorrect = (userAnsIdx !== undefined && userAnsIdx === parseInt(correctAnsIdx));
             if (isCorrect) score++;
 
             details.push({
