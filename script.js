@@ -239,21 +239,58 @@ async function renderStudentDashboard() {
             </div>
         </div>
         
-        <div id="profileDropdown" style="display: none; position: fixed; background: rgba(20, 15, 40, 0.98); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; width: 200px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); z-index: 99999; overflow: hidden;">
-            <button id="menuMyResults" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; transition: background 0.2s, color 0.2s;">
-                <img src="https://api.iconify.design/lucide:bar-chart-3.svg?color=%23a855f7" width="18" height="18" alt="Nəticələr" style="flex-shrink: 0;" /> Nəticələrim
-            </button>
-            <button id="menuChangePassword" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; transition: background 0.2s, color 0.2s;">
-                <img src="https://api.iconify.design/lucide:key-round.svg?color=%23a855f7" width="18" height="18" alt="Şifrə" style="flex-shrink: 0;" /> Şifrəni dəyişdir
-            </button>
-            <button id="menuLogout" style="width: 100%; padding: 12px 16px; background: none; border: none; color: #f87171; text-align: left; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 10px; transition: background 0.2s, color 0.2s;">
-                <img src="https://api.iconify.design/lucide:log-out.svg?color=%23f87171" width="18" height="18" alt="Çıxış" style="flex-shrink: 0;" /> Çıxış et
-            </button>
+        <!-- Gemini üslubunda işıqlı sərhədi olan profil menyusu -->
+        <div id="profileDropdown" class="profile-ai-dropdown" style="display: none; position: fixed; background: rgba(20, 15, 40, 0.98); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; width: 200px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); z-index: 99999; overflow: hidden;">
+            <div class="profile-spinning-border"></div>
+            <div style="position: relative; z-index: 2;">
+                <button id="menuMyResults" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; transition: background 0.2s, color 0.2s;">
+                    <img src="https://api.iconify.design/lucide:bar-chart-3.svg?color=%23a855f7" width="18" height="18" alt="Nəticələr" style="flex-shrink: 0;" /> Nəticələrim
+                </button>
+                <button id="menuChangePassword" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; transition: background 0.2s, color 0.2s;">
+                    <img src="https://api.iconify.design/lucide:key-round.svg?color=%23a855f7" width="18" height="18" alt="Şifrə" style="flex-shrink: 0;" /> Şifrəni dəyişdir
+                </button>
+                <button id="menuLogout" style="width: 100%; padding: 12px 16px; background: none; border: none; color: #f87171; text-align: left; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 10px; transition: background 0.2s, color 0.2s;">
+                    <img src="https://api.iconify.design/lucide:log-out.svg?color=%23f87171" width="18" height="18" alt="Çıxış" style="flex-shrink: 0;" /> Çıxış et
+                </button>
+            </div>
         </div>
+
+        <style>
+            @keyframes geminiGlowRotate {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            .profile-ai-dropdown {
+                position: relative;
+            }
+            .profile-spinning-border {
+                position: absolute;
+                inset: -3px;
+                border-radius: 16px;
+                border: 3px solid transparent;
+                border-top-color: #a855f7;
+                border-right-color: #3b82f6;
+                border-bottom-color: rgba(255, 255, 255, 0.15);
+                border-left-color: transparent;
+                animation: geminiGlowRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+                pointer-events: none;
+                filter: drop-shadow(0 0 10px rgba(168, 85, 247, 0.7));
+                z-index: 1;
+                display: none;
+            }
+        </style>
     `;
 
     const profileCircle = document.getElementById('profileCircle');
     const profileDropdown = document.getElementById('profileDropdown');
+    const profileBorder = profileDropdown.querySelector('.profile-spinning-border');
+
+    profileDropdown.addEventListener('mouseenter', () => {
+        profileBorder.style.display = 'block';
+    });
+    profileDropdown.addEventListener('mouseleave', () => {
+        profileBorder.style.display = 'none';
+    });
 
     const menuMyResults = document.getElementById('menuMyResults');
     const menuChangePassword = document.getElementById('menuChangePassword');
@@ -285,16 +322,19 @@ async function renderStudentDashboard() {
         
         if (profileDropdown.style.display === 'block') {
             profileDropdown.style.display = 'none';
+            profileBorder.style.display = 'none';
         } else {
             profileDropdown.style.top = (rect.bottom + 8) + 'px';
             profileDropdown.style.right = (window.innerWidth - rect.right) + 'px';
             profileDropdown.style.display = 'block';
+            profileBorder.style.display = 'block';
         }
     });
 
     document.addEventListener('click', (e) => {
         if (!profileCircle.contains(e.target) && !profileDropdown.contains(e.target)) {
             profileDropdown.style.display = 'none';
+            profileBorder.style.display = 'none';
         }
     });
 
@@ -400,19 +440,18 @@ async function renderStudentResultsView() {
         }
 
         container.innerHTML = '';
-        results.forEach((res, index) => {
+        results.forEach((res) => {
             const percent = Math.round((res.score / res.total) * 100);
 
-            // Nəticəyə görə Gemini rəng palitrasının təyini
-            let primaryColor = '#eab308'; // Orta (canlı sarı)
-            let secondaryColor = '#ec4899'; // Çəhrayı tonu
+            let primaryColor = '#eab308'; 
+            let secondaryColor = '#ec4899'; 
 
             if (percent < 50) {
-                primaryColor = '#ef4444'; // Zəif (canlı qırmızı)
-                secondaryColor = '#f97316'; // Narıncı tonu
+                primaryColor = '#ef4444'; 
+                secondaryColor = '#f97316'; 
             } else if (percent >= 80) {
-                primaryColor = '#10b981'; // Əla (canlı yaşıl)
-                secondaryColor = '#06b6d4'; // Cyan tonu
+                primaryColor = '#10b981'; 
+                secondaryColor = '#06b6d4'; 
             }
 
             let detailsParsed = [];
@@ -453,7 +492,6 @@ async function renderStudentResultsView() {
                 </div>
             `;
 
-            // Kartın üzərinə gələndə Gemini üslubunda nəticəyə uyğun rənglərlə fırlanan sərhəd effekti işə düşür
             const borderEl = document.createElement('div');
             borderEl.className = 'result-spinning-border';
             borderEl.style.display = 'none';
