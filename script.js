@@ -6,7 +6,6 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const appContainer = document.getElementById('appContainer') || document.body;
 
-// Global ümumi səhifə fonu və sıfırlama tənzimləmələri
 function applyGlobalStyles() {
     document.documentElement.style.height = '100%';
     document.body.style.height = '100%';
@@ -73,12 +72,13 @@ function buttonStyle() {
     return "width: 100%; padding: 12px; background: linear-gradient(135deg, #9333ea, #c084fc); color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 15px; cursor: pointer; transition: 0.3s;";
 }
 
-// Göz ikonlu şifrə sahəsi yaratmaq üçün köməkçi funksiya
+// Şifrə sahəsi: Mətn/nöqtələr tam mərkəzləşdirilib, sağda ... və ya 123
 function createPasswordFieldHTML(id, placeholder) {
     return `
         <div style="position: relative; width: 100%; margin-bottom: 14px;">
-            <input type="password" id="${id}" placeholder="${placeholder}" required style="width: 100%; padding: 12px 40px 12px 14px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; font-size: 14px; outline: none; box-sizing: border-box;">
-            <span id="toggle_${id}" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 18px; user-select: none;">👁️‍🗨️</span>
+            <input type="password" id="${id}" placeholder="${placeholder}" required style="width: 100%; padding: 12px 45px 12px 45px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; font-size: 14px; outline: none; box-sizing: border-box; text-align: center;">
+            <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.5); font-size: 14px; user-select: none;">...</span>
+            <span id="toggle_${id}" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 13px; font-weight: 600; background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 6px; user-select: none; color: #d8b4fe;" title="Şifrəni göstər/gizlət">123</span>
         </div>
     `;
 }
@@ -86,14 +86,17 @@ function createPasswordFieldHTML(id, placeholder) {
 function attachPasswordToggle(id) {
     const input = document.getElementById(id);
     const toggle = document.getElementById(`toggle_${id}`);
-    if(input && toggle) {
+    
+    if (input && toggle) {
         toggle.addEventListener('click', () => {
             if (input.type === "password") {
                 input.type = "text";
-                toggle.textContent = "👁️";
+                toggle.style.background = "#7e22ce";
+                toggle.style.color = "white";
             } else {
                 input.type = "password";
-                toggle.textContent = "👁️‍🗨️";
+                toggle.style.background = "rgba(255,255,255,0.1)";
+                toggle.style.color = "#d8b4fe";
             }
         });
     }
@@ -165,7 +168,7 @@ function renderRegisterForm() {
             <input type="text" id="regName" placeholder="Adınız" required style="${inputStyle()}">
             <input type="text" id="regSurname" placeholder="Soyadınız" required style="${inputStyle()}">
             <input type="text" id="regClass" placeholder="Sinfiniz (məsələn: 10A)" required style="${inputStyle()}">
-            ${createPasswordFieldHTML('regPassword', 'Şifrə yarat (məsələn: P@ss123)')}
+            ${createPasswordFieldHTML('regPassword', 'Şifrə yarat')}
             <button type="submit" style="${buttonStyle()}">Qeydiyyatdan Keç</button>
         </form>
     `;
@@ -211,21 +214,18 @@ function renderRegisterForm() {
     });
 }
 
-// Şagird Kabineti və Baş Hərf İnisialları Dropdown Menyusu
 async function renderStudentDashboard() {
     const initials = (currentStudent.name.charAt(0) + currentStudent.surname.charAt(0)).toUpperCase();
 
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; flex-direction: column; align-items: center;">
             <div style="width: 100%; max-width: 700px;">
-                <!-- Header -->
                 <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); backdrop-filter: blur(12px); padding: 16px 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 24px; position: relative;">
                     <div>
                         <h2 style="font-size: 18px; color: #d8b4fe; margin: 0 0 4px 0;">Xoş gəldiniz, ${currentStudent.name} ${currentStudent.surname}</h2>
                         <p style="font-size: 13px; color: #94a3b8; margin: 0;">Sinif: ${currentStudent.student_class}</p>
                     </div>
 
-                    <!-- Profil İnisial Dairəsi və Menyu -->
                     <div style="position: relative;">
                         <div id="profileCircle" style="width: 45px; height: 45px; background: linear-gradient(135deg, #7e22ce, #a855f7); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 16px; cursor: pointer; border: 2px solid rgba(255,255,255,0.2);">
                             ${initials}
@@ -298,7 +298,6 @@ async function renderStudentDashboard() {
     }
 }
 
-// Şagirdin Şəxsi Nəticələri və Dairəvi Diaqram Analitikası
 async function renderStudentResultsView() {
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; flex-direction: column; align-items: center;">
@@ -332,7 +331,6 @@ async function renderStudentResultsView() {
         container.innerHTML = '';
         results.forEach(res => {
             const percent = Math.round((res.score / res.total) * 100);
-            const incorrect = res.total - res.score; // sadələşdirilmiş hesablama və ya details_json-dan
 
             let detailsParsed = [];
             try {
@@ -340,15 +338,13 @@ async function renderStudentResultsView() {
             } catch(e) {}
 
             let correctCount = res.score;
-            let incorrectCount = 0;
+            let incorrectCount = res.total - res.score;
             let blankCount = 0;
 
             if (Array.isArray(detailsParsed)) {
                 correctCount = detailsParsed.filter(d => d.isCorrect).length;
                 incorrectCount = detailsParsed.filter(d => !d.isCorrect && d.userAnswer !== "Cavabsız").length;
                 blankCount = detailsParsed.filter(d => d.userAnswer === "Cavabsız").length;
-            } else {
-                incorrectCount = incorrect;
             }
 
             const card = document.createElement('div');
@@ -364,7 +360,6 @@ async function renderStudentResultsView() {
                         <span style="color: #fbbf24;">⚪ Boş: ${blankCount}</span>
                     </div>
                 </div>
-                <!-- Dairəvi Faiz İndikatoru -->
                 <div style="width: 65px; height: 65px; border-radius: 50%; background: conic-gradient(#7e22ce ${percent}%, rgba(255,255,255,0.1) 0%); display: flex; justify-content: center; align-items: center; position: relative;">
                     <div style="width: 53px; height: 53px; background: #18152e; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 13px; font-weight: bold; color: #d8b4fe;">
                         ${percent}%
@@ -379,7 +374,6 @@ async function renderStudentResultsView() {
     }
 }
 
-// Şifrəni dəyişdirmə interfeysi
 function renderChangePasswordModal() {
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; justify-content: center; align-items: center;">
@@ -426,7 +420,6 @@ function renderChangePasswordModal() {
     });
 }
 
-// Sınaq interfeysi
 async function loadAndStartQuiz(quizId) {
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; justify-content: center; align-items: center;">
@@ -571,13 +564,6 @@ async function showResults() {
         });
     });
 
-    const resultPayload = {
-        student: currentStudent,
-        score: score,
-        total: total,
-        details: details
-    };
-
     try {
         await supabase.from('student_results').insert([
             {
@@ -592,10 +578,6 @@ async function showResults() {
         ]);
     } catch (err) {
         console.error("Nəticə yazılarkən xəta:", err);
-    }
-
-    if (window.AndroidBridge && typeof window.AndroidBridge.onQuizFinished === 'function') {
-        window.AndroidBridge.onQuizFinished(JSON.stringify(resultPayload));
     }
 
     appContainer.innerHTML = `
