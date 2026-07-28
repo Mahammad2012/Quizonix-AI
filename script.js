@@ -364,7 +364,7 @@ async function renderStudentDashboard() {
             let btnHtml = `<button data-id="${quiz.id}" class="startQuizBtn" style="padding: 8px 16px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; white-space: nowrap; flex-shrink: 0;">Sınağa Başla</button>`;
             
             if (isLimitReached) {
-                btnHtml = `<button disabled style="padding: 8px 16px; background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 10px; font-weight: 600; cursor: not-allowed; font-size: 13px; white-space: nowrap; flex-shrink: 0;">İşlənilib (${userAttempts}/${maxLimit})</button>`;
+                btnHtml = `<button disabled style="padding: 8px 16px; background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.35); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; font-weight: 600; cursor: not-allowed; font-size: 13px; white-space: nowrap; flex-shrink: 0; opacity: 0.55;">Bitdi</button>`;
             }
 
             card.innerHTML = `
