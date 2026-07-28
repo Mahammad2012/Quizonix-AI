@@ -333,31 +333,70 @@ async function renderStudentDashboard() {
     });
 
     try {
-        const { data: quizzes, error } = await supabase.from('quizzes').select('id, title, duration');
+        const [{ data: quizzes, error: quizError }, { data: results, error: resError }] = await Promise.all([
+            supabase.from('quizzes').select('id, title, duration, max_attempts'),
+            supabase.from('student_results').select('quiz_id').eq('student_name', currentStudent.name).eq('student_surname', currentStudent.surname)
+        ]);
+
         const listContainer = document.getElementById('quizzesList');
 
-        if (error || !quizzes || quizzes.length === 0) {
+        if (quizError || !quizzes || quizzes.length === 0) {
             listContainer.innerHTML = `<p style="text-align: center; color: #94a3b8; background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; width: 100%;">Hazırda aktiv sınaq mövcud deyil.</p>`;
             return;
         }
 
+        const attemptCounts = {};
+        if (results) {
+            results.forEach(r => {
+                attemptCounts[r.quiz_id] = (attemptCounts[r.quiz_id] || 0) + 1;
+            });
+        }
+
         listContainer.innerHTML = '';
         quizzes.forEach(quiz => {
+            const userAttempts = attemptCounts[quiz.id] || 0;
+            const maxLimit = quiz.max_attempts !== undefined && quiz.max_attempts !== null ? quiz.max_attempts : 1;
+            const isLimitReached = userAttempts >= maxLimit;
+
             const card = document.createElement('div');
             card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; width: 300px; height: 120px;";
+            
+            let btnHtml = `<button data-id="${quiz.id}" class="startQuizBtn" style="padding: 8px 16px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; white-space: nowrap; flex-shrink: 0;">Sınağa Başla</button>`;
+            
+            if (isLimitReached) {
+                btnHtml = `<button disabled style="padding: 8px 16px; background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 10px; font-weight: 600; cursor: not-allowed; font-size: 13px; white-space: nowrap; flex-shrink: 0;">İşlənilib (${userAttempts}/${maxLimit})</button>`;
+            }
+
             card.innerHTML = `
                 <div style="overflow: hidden;">
                     <h4 style="font-size: 15px; font-weight: 600; color: #f1f5f9; margin: 0 0 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${quiz.title || `Test #${quiz.id}`}</h4>
                     <p style="font-size: 13px; color: #a78bfa; margin: 0;">⏱️ Müddət: ${quiz.duration ? quiz.duration + ' dəqiqə' : 'Məhdudiyyət yoxdur'}</p>
                 </div>
-                <button data-id="${quiz.id}" class="startQuizBtn" style="padding: 8px 16px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; white-space: nowrap; flex-shrink: 0;">Sınağa Başla</button>
+                ${btnHtml}
             `;
             listContainer.appendChild(card);
         });
 
         document.querySelectorAll('.startQuizBtn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                loadAndStartQuiz(e.target.getAttribute('data-id'));
+            btn.addEventListener('click', async (e) => {
+                const qId = e.target.getAttribute('data-id');
+                const { count } = await supabase
+                    .from('student_results')
+                    .select('*', { count: 'exact', head: true })
+                    .eq('quiz_id', qId)
+                    .eq('student_name', currentStudent.name)
+                    .eq('student_surname', currentStudent.surname);
+
+                const { data: qData } = await supabase.from('quizzes').select('max_attempts').eq('id', qId).single();
+                const allowedMax = qData && qData.max_attempts !== null ? qData.max_attempts : 1;
+
+                if (count >= allowedMax) {
+                    alert("Bu sınağı artıq maksimum sayda işləmisiniz!");
+                    renderStudentDashboard();
+                    return;
+                }
+
+                loadAndStartQuiz(qId);
             });
         });
     } catch (err) {
@@ -507,9 +546,8 @@ function renderDetailedReview(quizObj, resultItem) {
         const isCorrect = detailItem ? detailItem.isCorrect : false;
 
         let correctAnsText = "Təyin olunmayıb";
-        
-        // Həm obyekt formasını (məsələn: {"1": "B"}), həm də indeks/açar strukturlarını dəstəkləyirik
         let rawCA = null;
+
         if (correctAnswers) {
             if (Array.isArray(correctAnswers) && correctAnswers[idx]) {
                 rawCA = correctAnswers[idx].correctAnswerIndex !== undefined ? correctAnswers[idx].correctAnswerIndex : correctAnswers[idx].correctAnswer;
@@ -522,7 +560,6 @@ function renderDetailedReview(quizObj, resultItem) {
             if (typeof rawCA === 'number' && options[rawCA]) {
                 correctAnsText = options[rawCA];
             } else if (typeof rawCA === 'string') {
-                // Əgər hərf (məsələn "A", "B", "C") və ya birbaşa mətn kimi gəlibsə
                 const upper = rawCA.toUpperCase();
                 const charCode = upper.charCodeAt(0);
                 if (charCode >= 65 && charCode <= 90) {
