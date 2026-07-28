@@ -348,14 +348,16 @@ async function renderStudentDashboard() {
         const attemptCounts = {};
         if (results) {
             results.forEach(r => {
-                attemptCounts[r.quiz_id] = (attemptCounts[r.quiz_id] || 0) + 1;
+                const qIdStr = String(r.quiz_id);
+                attemptCounts[qIdStr] = (attemptCounts[qIdStr] || 0) + 1;
             });
         }
 
         listContainer.innerHTML = '';
         quizzes.forEach(quiz => {
-            const userAttempts = attemptCounts[quiz.id] || 0;
-            const isLimitReached = userAttempts >= 1; // Standart olaraq maksimum 1 dəfə
+            const quizIdStr = String(quiz.id);
+            const userAttempts = attemptCounts[quizIdStr] || 0;
+            const isLimitReached = userAttempts >= 1;
 
             const card = document.createElement('div');
             card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; width: 300px; height: 120px;";
