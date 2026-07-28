@@ -334,7 +334,7 @@ async function renderStudentDashboard() {
 
     try {
         const [{ data: quizzes, error: quizError }, { data: results, error: resError }] = await Promise.all([
-            supabase.from('quizzes').select('id, title, duration, max_attempts'),
+            supabase.from('quizzes').select('id, title, duration'),
             supabase.from('student_results').select('quiz_id').eq('student_name', currentStudent.name).eq('student_surname', currentStudent.surname)
         ]);
 
@@ -355,8 +355,7 @@ async function renderStudentDashboard() {
         listContainer.innerHTML = '';
         quizzes.forEach(quiz => {
             const userAttempts = attemptCounts[quiz.id] || 0;
-            const maxLimit = quiz.max_attempts !== undefined && quiz.max_attempts !== null ? quiz.max_attempts : 1;
-            const isLimitReached = userAttempts >= maxLimit;
+            const isLimitReached = userAttempts >= 1; // Standart olaraq maksimum 1 dəfə
 
             const card = document.createElement('div');
             card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; width: 300px; height: 120px;";
@@ -387,11 +386,8 @@ async function renderStudentDashboard() {
                     .eq('student_name', currentStudent.name)
                     .eq('student_surname', currentStudent.surname);
 
-                const { data: qData } = await supabase.from('quizzes').select('max_attempts').eq('id', qId).single();
-                const allowedMax = qData && qData.max_attempts !== null ? qData.max_attempts : 1;
-
-                if (count >= allowedMax) {
-                    alert("Bu sınağı artıq maksimum sayda işləmisiniz!");
+                if (count >= 1) {
+                    alert("Bu sınağı artıq 1 dəfə işləmisiniz!");
                     renderStudentDashboard();
                     return;
                 }
