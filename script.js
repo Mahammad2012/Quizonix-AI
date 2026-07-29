@@ -252,7 +252,7 @@ async function renderStudentDashboard() {
                 </div>
 
                 <h3 style="font-size: 18px; margin-bottom: 16px; color: #e2e8f0;">📝 Mövcud Sınaqlar</h3>
-                <div id="quizzesList" style="display: flex; flex-wrap: wrap; gap: 16px; width: 100%;">
+                <div id="quiz-container" style="display: flex; flex-wrap: wrap; gap: 16px; width: 100%;">
                     <p style="text-align: center; color: #94a3b8; padding: 20px; width: 100%;">Sınaqlar yüklənir...</p>
                 </div>
             </div>
@@ -295,6 +295,10 @@ async function renderStudentDashboard() {
             .mr-profile-container:hover .mr-spinning-border {
                 display: block;
             }
+            .btn-disabled {
+                opacity: 0.55;
+                cursor: not-allowed !important;
+            }
         </style>
     `;
 
@@ -334,16 +338,20 @@ async function renderStudentDashboard() {
         renderAuthScreen();
     });
 
+    await renderQuizCards();
+}
+
+async function renderQuizCards() {
     try {
-        const [{ data: quizzes, error: quizError }, { data: results, error: resError }] = await Promise.all([
-            supabase.from('quizzes').select('id, title, duration'),
+        const [{ data: quizzes, error: quizError }, { data: results }] = await Promise.all([
+            supabase.from('quizzes').select('*'),
             supabase.from('student_results').select('quiz_id').eq('student_name', currentStudent.name).eq('student_surname', currentStudent.surname)
         ]);
 
-        const listContainer = document.getElementById('quizzesList');
+        const container = document.getElementById('quiz-container');
 
         if (quizError || !quizzes || quizzes.length === 0) {
-            listContainer.innerHTML = `<p style="text-align: center; color: #94a3b8; background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; width: 100%;">Hazırda aktiv sınaq mövcud deyil.</p>`;
+            container.innerHTML = `<p style="text-align: center; color: #94a3b8; background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; width: 100%;">Hazırda aktiv sınaq mövcud deyil.</p>`;
             return;
         }
 
@@ -355,53 +363,52 @@ async function renderStudentDashboard() {
             });
         }
 
-        listContainer.innerHTML = '';
+        container.innerHTML = '';
         quizzes.forEach(quiz => {
             const quizIdStr = String(quiz.id);
             const userAttempts = attemptCounts[quizIdStr] || 0;
-            const isLimitReached = userAttempts >= 1;
+            const hasAttempts = userAttempts < 1;
+            
+            const btnText = hasAttempts ? "Sınağa Başla" : "Haqqınız bitib";
+            const isDisabled = !hasAttempts ? "disabled" : "";
 
             const card = document.createElement('div');
+            card.className = "quiz-card";
             card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; width: 300px; height: 120px;";
-            
-            let btnHtml = `<button data-id="${quiz.id}" class="startQuizBtn" style="padding: 8px 16px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; white-space: nowrap; flex-shrink: 0;">Sınağa Başla</button>`;
-            
-            if (isLimitReached) {
-                btnHtml = `<button disabled style="padding: 8px 16px; background: rgba(255, 255, 255, 0.05); color: rgba(255, 255, 255, 0.35); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 10px; font-weight: 600; cursor: not-allowed; font-size: 13px; white-space: nowrap; flex-shrink: 0; opacity: 0.55;">Bitdi</button>`;
-            }
 
             card.innerHTML = `
                 <div style="overflow: hidden;">
-                    <h4 style="font-size: 15px; font-weight: 600; color: #f1f5f9; margin: 0 0 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${quiz.title || `Test #${quiz.id}`}</h4>
+                    <h3 style="font-size: 15px; font-weight: 600; color: #f1f5f9; margin: 0 0 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${quiz.title || `Test #${quiz.id}`}</h3>
                     <p style="font-size: 13px; color: #a78bfa; margin: 0;">⏱️ Müddət: ${quiz.duration ? quiz.duration + ' dəqiqə' : 'Məhdudiyyət yoxdur'}</p>
                 </div>
-                ${btnHtml}
+                <button 
+                    id="quiz-btn-${quiz.id}" 
+                    class="start-btn ${!hasAttempts ? 'btn-disabled' : ''}" 
+                    style="padding: 8px 16px; background: ${hasAttempts ? '#7e22ce' : 'rgba(255, 255, 255, 0.05)'}; color: ${hasAttempts ? 'white' : 'rgba(255, 255, 255, 0.35)'}; border: ${hasAttempts ? 'none' : '1px solid rgba(255, 255, 255, 0.08)'}; border-radius: 10px; font-weight: 600; cursor: ${hasAttempts ? 'pointer' : 'not-allowed'}; font-size: 13px; white-space: nowrap; flex-shrink: 0;" 
+                    ${isDisabled}>
+                    ${btnText}
+                </button>
             `;
-            listContainer.appendChild(card);
-        });
+            container.appendChild(card);
 
-        document.querySelectorAll('.startQuizBtn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const qId = e.target.getAttribute('data-id');
-                const { count } = await supabase
-                    .from('student_results')
-                    .select('*', { count: 'exact', head: true })
-                    .eq('quiz_id', qId)
-                    .eq('student_name', currentStudent.name)
-                    .eq('student_surname', currentStudent.surname);
-
-                if (count >= 1) {
-                    alert("Bu sınağı artıq 1 dəfə işləmisiniz!");
-                    renderStudentDashboard();
-                    return;
-                }
-
-                loadAndStartQuiz(qId);
-            });
+            const btn = card.querySelector(`#quiz-btn-${quiz.id}`);
+            if (hasAttempts) {
+                btn.addEventListener('click', () => startQuiz(quiz.id, btn));
+            }
         });
     } catch (err) {
-        document.getElementById('quizzesList').innerHTML = `<p style="text-align: center; color: #f87171; width: 100%;">Sınaqları yükləmək mümkün olmadı.</p>`;
+        document.getElementById('quiz-container').innerHTML = `<p style="text-align: center; color: #f87171; width: 100%;">Sınaqları yükləmək mümkün olmadı.</p>`;
     }
+}
+
+function startQuiz(quizId, buttonElement) {
+    if (buttonElement) {
+        buttonElement.disabled = true;
+        buttonElement.innerText = "Sınaq davam edir...";
+        buttonElement.classList.add("btn-disabled");
+    }
+
+    loadAndStartQuiz(quizId);
 }
 
 async function renderStudentResultsView() {
@@ -794,6 +801,10 @@ function handlePrevQuestion() {
         currentQuestionIndex--;
         renderQuestion();
     }
+}
+
+async function finishQuizAndCheckStatus(quizId) {
+    await showResults();
 }
 
 async function showResults() {
