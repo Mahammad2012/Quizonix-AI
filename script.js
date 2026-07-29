@@ -296,12 +296,11 @@ async function renderStudentDashboard() {
                 display: block;
             }
             .btn-disabled {
-                opacity: 0.5 !important;
+                opacity: 0.6 !important;
                 cursor: not-allowed !important;
                 background: rgba(255, 255, 255, 0.1) !important;
-                color: rgba(255, 255, 255, 0.4) !important;
+                color: #94a3b8 !important;
                 border: 1px solid rgba(255, 255, 255, 0.15) !important;
-                pointer-events: none !important;
             }
         </style>
     `;
@@ -381,7 +380,7 @@ async function renderQuizCards() {
                 actionButtonsHTML = `
                     <div style="display: flex; gap: 8px; align-items: center;">
                         <button disabled class="btn-disabled" style="padding: 8px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; white-space: nowrap;">Bitdi</button>
-                        <button id="view-res-btn-${quiz.id}" style="padding: 8px 14px; background: #00b4d8; color: white; border: none; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; white-space: nowrap;">Nəticəm</button>
+                        <button id="view-res-btn-${quiz.id}" style="padding: 8px 14px; background: #381e72; color: #d8b4fe; border: 1px solid rgba(216, 180, 254, 0.3); border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; white-space: nowrap;">Nəticəm</button>
                     </div>
                 `;
             } else {
@@ -446,7 +445,7 @@ async function renderStudentResultsView() {
                 .select('*')
                 .eq('student_name', currentStudent.name)
                 .eq('student_surname', currentStudent.surname),
-            supabase.from('quizzes').select('id, title, questions_data, correct_answers')
+            supabase.from('quizzes').select('*')
         ]);
 
         const quizMap = {};
@@ -547,7 +546,7 @@ function renderDetailedReview(quizObj, resultItem) {
 
     let reviewHtml = `
         <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; justify-content: center;">
-            <div style="width: 100%; max-width: 600px;">
+            <div style="width: 100%; max-width: 650px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h2 style="font-size: 18px; color: #d8b4fe; margin: 0;">📋 Sınaq İcmalı: ${quizObj.title || 'Test'}</h2>
                     <button id="backToDashboardBtn" style="padding: 8px 14px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;">Kabinetə qayıt</button>
@@ -558,8 +557,11 @@ function renderDetailedReview(quizObj, resultItem) {
     questions.forEach((q, idx) => {
         const options = q.options || q.choices || q.variants || [];
         const questionText = q.question || q.text || q.prompt || q.title || (typeof q === 'string' ? q : "");
-        const explanation = q.explanation || q.izah || null;
         
+        // AI İzahları
+        const simpleExplanation = q.simpleExplanation || q.explanation || q.izah || "Açıq izah mövcud deyil.";
+        const detailedExplanation = q.detailedExplanation || q.detailed_explanation || "Sual üçün əlavə mürəkkəb izah təyin olunmayıb.";
+
         const detailItem = details ? details.find(d => d.questionIndex === idx + 1) : null;
         const userAnsText = detailItem ? detailItem.userAnswer : "Cavabsız";
         const isCorrect = detailItem ? detailItem.isCorrect : false;
@@ -603,14 +605,18 @@ function renderDetailedReview(quizObj, resultItem) {
 
         let optionsHtml = "";
         options.forEach((opt) => {
-            let optStyle = "background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: white;";
+            let optStyle = "background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #cbd5e1;";
             const isUserChoice = (userAnsText === opt);
             const isCorrectChoice = (correctAnsText === opt);
 
-            if (isCorrectChoice) {
-                optStyle = "background: rgba(34, 197, 94, 0.2); border: 1px solid #22c55e; color: #86efac; font-weight: bold;";
-            } else if (isUserChoice && !isCorrect) {
-                optStyle = "background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #fca5a5; font-weight: bold;";
+            if (isUserChoice) {
+                if (isCorrect) {
+                    optStyle = "background: rgba(34, 197, 94, 0.2); border: 1px solid #22c55e; color: #4ade80; font-weight: bold;"; // YAŞIL
+                } else {
+                    optStyle = "background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #f87171; font-weight: bold;"; // QIRMIZI
+                }
+            } else if (isCorrectChoice && !isCorrect) {
+                optStyle = "background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.4); color: #4ade80;";
             }
 
             optionsHtml += `<div style="padding: 10px 14px; margin-bottom: 6px; border-radius: 8px; font-size: 14px; ${optStyle}">${opt}</div>`;
@@ -620,15 +626,6 @@ function renderDetailedReview(quizObj, resultItem) {
             ? `<span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold;">Düzgün ✅</span>`
             : `<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold;">Səhv ❌</span>`;
 
-        let explanationHtml = "";
-        if (explanation) {
-            explanationHtml = `
-                <div style="margin-top: 10px; padding: 10px 12px; background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 8px; font-size: 13px; color: #e9d5ff;">
-                    💡 <b>Qısa izah:</b> ${explanation}
-                </div>
-            `;
-        }
-
         reviewHtml += `
             <div style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 18px; border-radius: 14px; box-sizing: border-box;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -637,10 +634,26 @@ function renderDetailedReview(quizObj, resultItem) {
                 </div>
                 <p style="font-size: 15px; margin-bottom: 12px; color: #f1f5f9;">${questionText}</p>
                 <div style="margin-bottom: 10px;">${optionsHtml}</div>
-                <div style="font-size: 13px; color: #cbd5e1; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px; margin-top: 8px;">
-                    Sizin cavab: <b style="color: ${isCorrect ? '#22c55e' : '#ef4444'};">${userAnsText}</b> | Düzgün cavab: <b style="color: #22c55e;">${correctAnsText}</b>
+
+                <!-- GEMINI / AI İZAHLAR BÖLMƏSİ -->
+                <div style="margin-top: 12px; padding: 12px; background: rgba(24, 21, 46, 0.8); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 12px;">
+                    <div style="display: flex; align-items: center; gap: 6px; color: #d8b4fe; font-size: 12px; font-weight: bold; margin-bottom: 6px;">
+                        ✨ Gemini AI Sadə İzah
+                    </div>
+                    <p style="margin: 0; font-size: 13px; color: #e2e8f0; line-height: 1.4;">${simpleExplanation}</p>
+
+                    <!-- Mürəkkəb İzah Açılıb-Bağlanan Oxlu Hissə -->
+                    <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
+                        <button class="toggle-exp-btn" data-index="${idx}" style="background: transparent; border: none; color: #c084fc; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 0;">
+                            <span>Daha mürəkkəb / ətraflı izah</span>
+                            <span id="arrow-${idx}">↓</span>
+                        </button>
+
+                        <div id="detailed-exp-${idx}" style="display: none; margin-top: 8px; padding: 10px; background: rgba(0,0,0,0.25); border-radius: 8px; font-size: 12px; color: #cbd5e1; line-height: 1.4; border: 1px solid rgba(255,255,255,0.08);">
+                            ${detailedExplanation}
+                        </div>
+                    </div>
                 </div>
-                ${explanationHtml}
             </div>
         `;
     });
@@ -653,6 +666,23 @@ function renderDetailedReview(quizObj, resultItem) {
 
     appContainer.innerHTML = reviewHtml;
     document.getElementById('backToDashboardBtn').addEventListener('click', renderStudentDashboard);
+
+    // Ox işarəsi ilə açılıb-bağlanma məntiqi
+    document.querySelectorAll('.toggle-exp-btn').forEach(btn => {
+        btn.onclick = function() {
+            const idx = this.getAttribute('data-index');
+            const detailedBox = document.getElementById(`detailed-exp-${idx}`);
+            const arrow = document.getElementById(`arrow-${idx}`);
+
+            if (detailedBox.style.display === 'none') {
+                detailedBox.style.display = 'block';
+                arrow.textContent = '↑'; // Yuxarı baxan ox
+            } else {
+                detailedBox.style.display = 'none';
+                arrow.textContent = '↓'; // Aşağı baxan ox
+            }
+        };
+    });
 }
 
 function renderChangePasswordModal() {
