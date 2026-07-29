@@ -6,15 +6,13 @@
     <title>Aquarius Kviz AI</title>
     <link rel="icon" type="image/png" href="Aquarius.png">
     <link rel="stylesheet" href="style.css">
-    <!-- Supabase SDK (Əgər Supabase istifadə edirsinizsə) -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
     <div class="main-wrapper">
         <div class="card-container">
             
-            <!-- Axtarış / Məlumat Daxiletmə Paneli -->
+            <!-- Axtarış Paneli (Test açıldıqda gizlənir) -->
             <div id="searchSection">
                 <h1>✨ Aquarius Kviz AI</h1>
                 <p class="subtitle">Məlumatları daxil edin və testə başlayın</p>
@@ -26,6 +24,7 @@
                     <input type="number" id="quizIdInput" placeholder="Test ID (Məs: 1)">
                 </div>
 
+                <!-- "Testi Aç" düyməsi aşağıda yerləşdirildi -->
                 <button id="loadQuizByIdBtn" class="btn primary-btn full-btn">Testi Aç</button>
             </div>
 
@@ -35,18 +34,12 @@
                     <h2 id="quizTitle">Test Başlığı</h2>
                 </div>
                 <div id="questionBox" class="question-box"></div>
-                
                 <div class="quiz-nav">
                     <button id="prevQuestionBtn" class="btn secondary-btn">Əvvəlki</button>
                     <button id="nextQuestionBtn" class="btn primary-btn">Növbəti</button>
-                    <button id="submitQuizBtn" class="btn primary-btn hidden" style="background-color: #05cd99;">Bitir</button>
                 </div>
             </div>
-
-            <!-- Nəticə Ekranı -->
-            <div id="resultBox" class="result-box hidden"></div>
             
-            <!-- Yüklənir Bildirişi -->
             <div id="loading" class="loading hidden">Yüklənir...</div>
         </div>
     </div>
