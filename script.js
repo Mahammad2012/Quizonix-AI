@@ -348,7 +348,7 @@ async function renderQuizCards() {
     try {
         const [{ data: quizzes, error: quizError }, { data: results }] = await Promise.all([
             supabase.from('quizzes').select('*'),
-            supabase.from('student_results').select('quiz_id').eq('student_name', currentStudent.name).eq('student_surname', currentStudent.surname)
+            supabase.from('student_results').select('*').eq('student_name', currentStudent.name).eq('student_surname', currentStudent.surname)
         ]);
 
         const container = document.getElementById('quiz-container');
@@ -358,42 +358,58 @@ async function renderQuizCards() {
             return;
         }
 
-        const completedQuizIds = new Set();
+        const resultMap = {};
         if (results) {
             results.forEach(r => {
-                completedQuizIds.add(String(r.quiz_id));
+                resultMap[String(r.quiz_id)] = r;
             });
         }
 
         container.innerHTML = '';
         quizzes.forEach(quiz => {
             const quizIdStr = String(quiz.id);
-            const isCompleted = completedQuizIds.has(quizIdStr);
-
-            const btnText = isCompleted ? "Bitdi" : "Sınağa Başla";
+            const userResult = resultMap[quizIdStr];
+            const isCompleted = !!userResult;
 
             const card = document.createElement('div');
             card.className = "quiz-card";
-            card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; width: 300px; height: 120px;";
+            card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; width: 340px; min-height: 120px;";
+
+            let actionButtonsHTML = '';
+            if (isCompleted) {
+                actionButtonsHTML = `
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <button disabled class="btn-disabled" style="padding: 8px 14px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; font-weight: 600; font-size: 13px; cursor: not-allowed; white-space: nowrap;">Bitdi</button>
+                        <button id="view-res-btn-${quiz.id}" style="padding: 8px 14px; background: #00b4d8; color: white; border: none; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; white-space: nowrap;">Nəticəm</button>
+                    </div>
+                `;
+            } else {
+                actionButtonsHTML = `
+                    <button id="quiz-btn-${quiz.id}" class="start-btn" style="padding: 8px 16px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; white-space: nowrap; flex-shrink: 0;">Sınağa Başla</button>
+                `;
+            }
 
             card.innerHTML = `
-                <div style="overflow: hidden;">
+                <div style="overflow: hidden; padding-right: 10px;">
                     <h3 style="font-size: 15px; font-weight: 600; color: #f1f5f9; margin: 0 0 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${quiz.title || `Test #${quiz.id}`}</h3>
                     <p style="font-size: 13px; color: #a78bfa; margin: 0;">⏱️ Müddət: ${quiz.duration ? quiz.duration + ' dəqiqə' : 'Məhdudiyyət yoxdur'}</p>
                 </div>
-                <button 
-                    id="quiz-btn-${quiz.id}" 
-                    class="start-btn ${isCompleted ? 'btn-disabled' : ''}" 
-                    style="padding: 8px 16px; background: ${isCompleted ? 'rgba(255,255,255,0.08)' : '#7e22ce'}; color: ${isCompleted ? 'rgba(255,255,255,0.4)' : 'white'}; border: ${isCompleted ? '1px solid rgba(255,255,255,0.1)' : 'none'}; border-radius: 10px; font-weight: 600; cursor: ${isCompleted ? 'not-allowed' : 'pointer'}; font-size: 13px; white-space: nowrap; flex-shrink: 0;" 
-                    ${isCompleted ? 'disabled' : ''}>
-                    ${btnText}
-                </button>
+                ${actionButtonsHTML}
             `;
             container.appendChild(card);
 
-            const btn = card.querySelector(`#quiz-btn-${quiz.id}`);
-            if (!isCompleted) {
-                btn.addEventListener('click', () => startQuiz(quiz.id, btn));
+            if (isCompleted) {
+                const resBtn = card.querySelector(`#view-res-btn-${quiz.id}`);
+                if (resBtn) {
+                    resBtn.addEventListener('click', () => {
+                        renderDetailedReview(quiz, userResult);
+                    });
+                }
+            } else {
+                const startBtn = card.querySelector(`#quiz-btn-${quiz.id}`);
+                if (startBtn) {
+                    startBtn.addEventListener('click', () => startQuiz(quiz.id, startBtn));
+                }
             }
         });
     } catch (err) {
@@ -538,7 +554,7 @@ function renderDetailedReview(quizObj, resultItem) {
             <div style="width: 100%; max-width: 600px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h2 style="font-size: 18px; color: #d8b4fe; margin: 0;">📋 Sınaq İcmalı: ${quizObj.title || 'Test'}</h2>
-                    <button id="backToResultsBtn" style="padding: 8px 14px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;">Geri</button>
+                    <button id="backToDashboardBtn" style="padding: 8px 14px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;">Kabinetə qayıt</button>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 16px;">
     `;
@@ -546,6 +562,7 @@ function renderDetailedReview(quizObj, resultItem) {
     questions.forEach((q, idx) => {
         const options = q.options || q.choices || q.variants || [];
         const questionText = q.question || q.text || q.prompt || q.title || (typeof q === 'string' ? q : "");
+        const explanation = q.explanation || q.izah || null;
         
         const detailItem = details ? details.find(d => d.questionIndex === idx + 1) : null;
         const userAnsText = detailItem ? detailItem.userAnswer : "Cavabsız";
@@ -607,6 +624,15 @@ function renderDetailedReview(quizObj, resultItem) {
             ? `<span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold;">Düzgün ✅</span>`
             : `<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold;">Səhv ❌</span>`;
 
+        let explanationHtml = "";
+        if (explanation) {
+            explanationHtml = `
+                <div style="margin-top: 10px; padding: 10px 12px; background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 8px; font-size: 13px; color: #e9d5ff;">
+                    💡 <b>Qısa izah:</b> ${explanation}
+                </div>
+            `;
+        }
+
         reviewHtml += `
             <div style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 18px; border-radius: 14px; box-sizing: border-box;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -618,6 +644,7 @@ function renderDetailedReview(quizObj, resultItem) {
                 <div style="font-size: 13px; color: #cbd5e1; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px; margin-top: 8px;">
                     Sizin cavab: <b style="color: ${isCorrect ? '#22c55e' : '#ef4444'};">${userAnsText}</b> | Düzgün cavab: <b style="color: #22c55e;">${correctAnsText}</b>
                 </div>
+                ${explanationHtml}
             </div>
         `;
     });
@@ -629,7 +656,7 @@ function renderDetailedReview(quizObj, resultItem) {
     `;
 
     appContainer.innerHTML = reviewHtml;
-    document.getElementById('backToResultsBtn').addEventListener('click', renderStudentResultsView);
+    document.getElementById('backToDashboardBtn').addEventListener('click', renderStudentDashboard);
 }
 
 function renderChangePasswordModal() {
