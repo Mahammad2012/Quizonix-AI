@@ -296,8 +296,11 @@ async function renderStudentDashboard() {
                 display: block;
             }
             .btn-disabled {
-                opacity: 0.55;
+                opacity: 0.5;
                 cursor: not-allowed !important;
+                background: rgba(255, 255, 255, 0.08) !important;
+                color: rgba(255, 255, 255, 0.4) !important;
+                border: 1px solid rgba(255, 255, 255, 0.1) !important;
             }
         </style>
     `;
@@ -355,22 +358,19 @@ async function renderQuizCards() {
             return;
         }
 
-        const attemptCounts = {};
+        const completedQuizIds = new Set();
         if (results) {
             results.forEach(r => {
-                const qIdStr = String(r.quiz_id);
-                attemptCounts[qIdStr] = (attemptCounts[qIdStr] || 0) + 1;
+                completedQuizIds.add(String(r.quiz_id));
             });
         }
 
         container.innerHTML = '';
         quizzes.forEach(quiz => {
             const quizIdStr = String(quiz.id);
-            const userAttempts = attemptCounts[quizIdStr] || 0;
-            const hasAttempts = userAttempts < 1;
-            
-            const btnText = hasAttempts ? "Sınağa Başla" : "Haqqınız bitib";
-            const isDisabled = !hasAttempts ? "disabled" : "";
+            const isCompleted = completedQuizIds.has(quizIdStr);
+
+            const btnText = isCompleted ? "Tamamlandı" : "Sınağa Başla";
 
             const card = document.createElement('div');
             card.className = "quiz-card";
@@ -383,16 +383,16 @@ async function renderQuizCards() {
                 </div>
                 <button 
                     id="quiz-btn-${quiz.id}" 
-                    class="start-btn ${!hasAttempts ? 'btn-disabled' : ''}" 
-                    style="padding: 8px 16px; background: ${hasAttempts ? '#7e22ce' : 'rgba(255, 255, 255, 0.05)'}; color: ${hasAttempts ? 'white' : 'rgba(255, 255, 255, 0.35)'}; border: ${hasAttempts ? 'none' : '1px solid rgba(255, 255, 255, 0.08)'}; border-radius: 10px; font-weight: 600; cursor: ${hasAttempts ? 'pointer' : 'not-allowed'}; font-size: 13px; white-space: nowrap; flex-shrink: 0;" 
-                    ${isDisabled}>
+                    class="start-btn ${isCompleted ? 'btn-disabled' : ''}" 
+                    style="padding: 8px 16px; background: ${isCompleted ? 'rgba(255,255,255,0.08)' : '#7e22ce'}; color: ${isCompleted ? 'rgba(255,255,255,0.4)' : 'white'}; border: ${isCompleted ? '1px solid rgba(255,255,255,0.1)' : 'none'}; border-radius: 10px; font-weight: 600; cursor: ${isCompleted ? 'not-allowed' : 'pointer'}; font-size: 13px; white-space: nowrap; flex-shrink: 0;" 
+                    ${isCompleted ? 'disabled' : ''}>
                     ${btnText}
                 </button>
             `;
             container.appendChild(card);
 
             const btn = card.querySelector(`#quiz-btn-${quiz.id}`);
-            if (hasAttempts) {
+            if (!isCompleted) {
                 btn.addEventListener('click', () => startQuiz(quiz.id, btn));
             }
         });
@@ -407,7 +407,6 @@ function startQuiz(quizId, buttonElement) {
         buttonElement.innerText = "Sınaq davam edir...";
         buttonElement.classList.add("btn-disabled");
     }
-
     loadAndStartQuiz(quizId);
 }
 
