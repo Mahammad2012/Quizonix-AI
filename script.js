@@ -370,7 +370,7 @@ async function renderQuizCards() {
             const quizIdStr = String(quiz.id);
             const isCompleted = completedQuizIds.has(quizIdStr);
 
-            const btnText = isCompleted ? "Tamamlandı" : "Sınağa Başla";
+            const btnText = isCompleted ? "Bitdi" : "Sınağa Başla";
 
             const card = document.createElement('div');
             card.className = "quiz-card";
@@ -404,7 +404,7 @@ async function renderQuizCards() {
 function startQuiz(quizId, buttonElement) {
     if (buttonElement) {
         buttonElement.disabled = true;
-        buttonElement.innerText = "Sınaq davam edir...";
+        buttonElement.innerText = "Bitdi";
         buttonElement.classList.add("btn-disabled");
     }
     loadAndStartQuiz(quizId);
@@ -783,7 +783,7 @@ function renderQuestion() {
 
     const prevBtn = document.getElementById('prevQuestionBtn');
     prevBtn.style.display = currentQuestionIndex === 0 ? "none" : "block";
-    document.getElementById('nextQuestionBtn').textContent = currentQuestionIndex === currentQuizData.length - 1 ? "Bitir" : "Növbəti";
+    document.getElementById('nextQuestionBtn').textContent = currentQuestionIndex === currentQuizData.length - 1 ? "Bitdi" : "Növbəti";
 }
 
 function handleNextQuestion() {
@@ -791,6 +791,12 @@ function handleNextQuestion() {
         currentQuestionIndex++;
         renderQuestion();
     } else {
+        const nextBtn = document.getElementById('nextQuestionBtn');
+        if (nextBtn) {
+            nextBtn.disabled = true;
+            nextBtn.innerText = "Bitdi";
+            nextBtn.classList.add("btn-disabled");
+        }
         showResults();
     }
 }
@@ -800,10 +806,6 @@ function handlePrevQuestion() {
         currentQuestionIndex--;
         renderQuestion();
     }
-}
-
-async function finishQuizAndCheckStatus(quizId) {
-    await showResults();
 }
 
 async function showResults() {
