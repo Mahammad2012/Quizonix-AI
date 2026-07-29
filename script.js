@@ -6,18 +6,6 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const appContainer = document.getElementById('appContainer') || document.body;
 
-function applyGlobalStyles() {
-    document.documentElement.style.height = '100%';
-    document.body.style.height = '100%';
-    document.body.style.margin = '0';
-    document.body.style.padding = '0';
-    document.body.style.background = 'linear-gradient(135deg, #0f0c29, #302b63, #24243e)';
-    document.body.style.backgroundAttachment = 'fixed';
-    document.body.style.fontFamily = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
-    document.body.style.color = 'white';
-}
-applyGlobalStyles();
-
 let currentStudent = null;
 let currentQuizId = null;
 let currentQuizData = [];
@@ -125,9 +113,6 @@ function showLoadingScreen(message, callback) {
                 <h3 style="font-size: 18px; color: #d8b4fe; margin: 0;">${message}</h3>
             </div>
         </div>
-        <style>
-            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        </style>
     `;
     setTimeout(callback, 1500);
 }
@@ -155,8 +140,8 @@ function renderLoginForm() {
                 const { data, error } = await supabase
                     .from('students_account')
                     .select('*')
-                    .eq('name', name)
-                    .eq('surname', surname)
+                    .ilike('name', name)
+                    .ilike('surname', surname)
                     .eq('password', password)
                     .single();
 
@@ -202,8 +187,8 @@ function renderRegisterForm() {
                 const { data: existing } = await supabase
                     .from('students_account')
                     .select('*')
-                    .eq('name', name)
-                    .eq('surname', surname)
+                    .ilike('name', name)
+                    .ilike('surname', surname)
                     .single();
 
                 if (existing) {
@@ -233,76 +218,35 @@ function renderRegisterForm() {
 
 async function renderStudentDashboard() {
     appContainer.innerHTML = `
-        <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px;">
-            <div style="width: 100%;">
-                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); backdrop-filter: blur(12px); padding: 16px 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 24px; box-sizing: border-box; width: 100%;">
-                    <div>
-                        <h2 style="font-size: 18px; color: #d8b4fe; margin: 0 0 4px 0;">Xoş gəldiniz, ${currentStudent.name} ${currentStudent.surname}</h2>
-                        <p style="font-size: 13px; color: #94a3b8; margin: 0;">Sinif: ${currentStudent.student_class}</p>
-                    </div>
-
-                    <div>
-                        <div id="profileCircle" class="mr-profile-container" style="width: 45px; height: 45px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; position: relative;" title="Profil menyusu">
-                            <div class="mr-spinning-border"></div>
-                            <div style="width: 100%; height: 100%; background: linear-gradient(135deg, #7e22ce, #a855f7); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; font-size: 15px; color: white; position: relative; z-index: 2;">
-                                MR
-                            </div>
-                        </div>
-                    </div>
+        <div class="main-wrapper">
+            <div class="user-header">
+                <div>
+                    <h2>Xoş gəldiniz, ${currentStudent.name} ${currentStudent.surname}</h2>
+                    <p>Sinif: ${currentStudent.student_class}</p>
                 </div>
 
-                <h3 style="font-size: 18px; margin-bottom: 16px; color: #e2e8f0;">📝 Mövcud Sınaqlar</h3>
-                <div id="quiz-container" style="display: flex; flex-wrap: wrap; gap: 16px; width: 100%;">
-                    <p style="text-align: center; color: #94a3b8; padding: 20px; width: 100%;">Sınaqlar yüklənir...</p>
+                <div id="profileCircle" class="user-avatar mr-profile-container" style="position: relative; cursor: pointer;" title="Profil menyusu">
+                    <div class="mr-spinning-border"></div>
+                    <span style="position: relative; z-index: 2;">MR</span>
                 </div>
             </div>
+
+            <h3 class="section-title">📝 Mövcud Sınaqlar</h3>
+            <div id="quiz-container" class="quiz-grid">
+                <p style="text-align: center; color: #a0aec0; padding: 20px; grid-column: 1/-1;">Sınaqlar yüklənir...</p>
+            </div>
         </div>
-        
+
         <div id="profileDropdown" style="display: none; position: fixed; background: rgba(20, 15, 40, 0.98); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; width: 200px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); z-index: 99999; overflow: hidden;">
             <div style="position: relative; z-index: 2;">
-                <button id="menuMyResults" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px;">
-                    <img src="https://api.iconify.design/lucide:bar-chart-3.svg?color=%23a855f7" width="18" height="18" alt="Nəticələr" style="flex-shrink: 0;" /> Nəticələrim
+                <button id="menuChangePassword" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08);">
+                    🔑 Şifrəni dəyişdir
                 </button>
-                <button id="menuChangePassword" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px;">
-                    <img src="https://api.iconify.design/lucide:key-round.svg?color=%23a855f7" width="18" height="18" alt="Şifrə" style="flex-shrink: 0;" /> Şifrəni dəyişdir
-                </button>
-                <button id="menuLogout" style="width: 100%; padding: 12px 16px; background: none; border: none; color: #f87171; text-align: left; cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 10px;">
-                    <img src="https://api.iconify.design/lucide:log-out.svg?color=%23f87171" width="18" height="18" alt="Çıxış" style="flex-shrink: 0;" /> Çıxış et
+                <button id="menuLogout" style="width: 100%; padding: 12px 16px; background: none; border: none; color: #f87171; text-align: left; cursor: pointer; font-size: 14px;">
+                    🚪 Çıxış et
                 </button>
             </div>
         </div>
-
-        <style>
-            @keyframes geminiGlowRotate {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-            .mr-spinning-border {
-                position: absolute;
-                inset: -3px;
-                border-radius: 50%;
-                border: 3px solid transparent;
-                border-top-color: #ef4444;
-                border-right-color: #eab308;
-                border-bottom-color: #22c55e;
-                border-left-color: transparent;
-                animation: geminiGlowRotate 3s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-                pointer-events: none;
-                filter: drop-shadow(0 0 8px rgba(234, 179, 8, 0.7));
-                z-index: 1;
-                display: none;
-            }
-            .mr-profile-container:hover .mr-spinning-border {
-                display: block;
-            }
-            .btn-disabled {
-                opacity: 0.6 !important;
-                cursor: not-allowed !important;
-                background: rgba(255, 255, 255, 0.1) !important;
-                color: #94a3b8 !important;
-                border: 1px solid rgba(255, 255, 255, 0.15) !important;
-            }
-        </style>
     `;
 
     const profileCircle = document.getElementById('profileCircle');
@@ -326,10 +270,6 @@ async function renderStudentDashboard() {
         }
     });
 
-    document.getElementById('menuMyResults').addEventListener('click', () => {
-        profileDropdown.style.display = 'none';
-        renderStudentResultsView();
-    });
     document.getElementById('menuChangePassword').addEventListener('click', () => {
         profileDropdown.style.display = 'none';
         renderChangePasswordModal();
@@ -348,22 +288,27 @@ async function renderQuizCards() {
     try {
         const [{ data: quizzes, error: quizError }, { data: results }] = await Promise.all([
             supabase.from('quizzes').select('*'),
-            supabase.from('student_results').select('*').eq('student_name', currentStudent.name).eq('student_surname', currentStudent.surname)
+            supabase.from('student_results').select('*')
         ]);
 
         const container = document.getElementById('quiz-container');
 
         if (quizError || !quizzes || quizzes.length === 0) {
-            container.innerHTML = `<p style="text-align: center; color: #94a3b8; background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; width: 100%;">Hazırda aktiv sınaq mövcud deyil.</p>`;
+            container.innerHTML = `<p style="text-align: center; color: #a0aec0; padding: 20px; grid-column: 1/-1;">Hazırda aktiv sınaq mövcud deyil.</p>`;
             return;
         }
 
+        // Cari tələbəyə aid nəticələri tapırıq
+        const studentResults = (results || []).filter(r => 
+            r.student_name && r.student_surname &&
+            r.student_name.trim().toLowerCase() === currentStudent.name.trim().toLowerCase() &&
+            r.student_surname.trim().toLowerCase() === currentStudent.surname.trim().toLowerCase()
+        );
+
         const resultMap = {};
-        if (results) {
-            results.forEach(r => {
-                resultMap[String(r.quiz_id)] = r;
-            });
-        }
+        studentResults.forEach(r => {
+            resultMap[String(r.quiz_id)] = r;
+        });
 
         container.innerHTML = '';
         quizzes.forEach(quiz => {
@@ -373,26 +318,26 @@ async function renderQuizCards() {
 
             const card = document.createElement('div');
             card.className = "quiz-card";
-            card.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 14px; display: flex; justify-content: space-between; align-items: center; box-sizing: border-box; width: 340px; min-height: 120px;";
 
             let actionButtonsHTML = '';
             if (isCompleted) {
+                // Sizin style.css-dəki düymələrə tam uyğunlaşdırıldı:
                 actionButtonsHTML = `
-                    <div style="display: flex; gap: 8px; align-items: center;">
-                        <button disabled class="btn-disabled" style="padding: 8px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; white-space: nowrap;">Bitdi</button>
-                        <button id="view-res-btn-${quiz.id}" style="padding: 8px 14px; background: #381e72; color: #d8b4fe; border: 1px solid rgba(216, 180, 254, 0.3); border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; white-space: nowrap;">Nəticəm</button>
+                    <div class="btn-group">
+                        <button disabled class="btn completed-btn">Bitdi</button>
+                        <button id="view-res-btn-${quiz.id}" class="btn result-btn">Nəticəm</button>
                     </div>
                 `;
             } else {
                 actionButtonsHTML = `
-                    <button id="quiz-btn-${quiz.id}" class="start-btn" style="padding: 8px 16px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px; white-space: nowrap; flex-shrink: 0;">Sınağa Başla</button>
+                    <button id="quiz-btn-${quiz.id}" class="btn start-btn">Sınağa Başla</button>
                 `;
             }
 
             card.innerHTML = `
-                <div style="overflow: hidden; padding-right: 10px;">
-                    <h3 style="font-size: 15px; font-weight: 600; color: #f1f5f9; margin: 0 0 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${quiz.title || `Test #${quiz.id}`}</h3>
-                    <p style="font-size: 13px; color: #a78bfa; margin: 0;">⏱️ Müddət: ${quiz.duration ? quiz.duration + ' dəqiqə' : 'Məhdudiyyət yoxdur'}</p>
+                <div class="quiz-info">
+                    <h4>${quiz.title || `Sınaq ${quiz.id}`}</h4>
+                    <p>⏱️ Müddət: ${quiz.duration ? quiz.duration + ' dəqiqə' : 'Məhdudiyyət yoxdur'}</p>
                 </div>
                 ${actionButtonsHTML}
             `;
@@ -408,123 +353,13 @@ async function renderQuizCards() {
             } else {
                 const startBtn = card.querySelector(`#quiz-btn-${quiz.id}`);
                 if (startBtn) {
-                    startBtn.addEventListener('click', () => startQuiz(quiz.id));
+                    startBtn.addEventListener('click', () => loadAndStartQuiz(quiz.id));
                 }
             }
         });
     } catch (err) {
-        document.getElementById('quiz-container').innerHTML = `<p style="text-align: center; color: #f87171; width: 100%;">Sınaqları yükləmək mümkün olmadı.</p>`;
-    }
-}
-
-function startQuiz(quizId) {
-    loadAndStartQuiz(quizId);
-}
-
-async function renderStudentResultsView() {
-    appContainer.innerHTML = `
-        <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px;">
-            <div style="width: 100%;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                    <h2 style="font-size: 20px; color: #d8b4fe; margin: 0;">📊 Sənin Nəticələrin</h2>
-                    <button id="backToDashboard" style="padding: 10px 18px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 10px; cursor: pointer; font-weight: 600;">Kabinetə qayıt</button>
-                </div>
-                <div id="resultsContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; width: 100%;">
-                    <p style="text-align: center; color: #94a3b8; padding: 20px; grid-column: 1 / -1;">Nəticələr yüklənir...</p>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.getElementById('backToDashboard').addEventListener('click', renderStudentDashboard);
-
-    try {
-        const [{ data: results, error }, { data: quizzes }] = await Promise.all([
-            supabase
-                .from('student_results')
-                .select('*')
-                .eq('student_name', currentStudent.name)
-                .eq('student_surname', currentStudent.surname),
-            supabase.from('quizzes').select('*')
-        ]);
-
-        const quizMap = {};
-        const quizFullDataMap = {};
-        if (quizzes) {
-            quizzes.forEach(q => {
-                quizMap[q.id] = q.title;
-                quizFullDataMap[q.id] = q;
-            });
-        }
-
-        const container = document.getElementById('resultsContainer');
-        if (error || !results || results.length === 0) {
-            container.innerHTML = `<p style="text-align: center; color: #94a3b8; background: rgba(255,255,255,0.03); padding: 20px; border-radius: 12px; grid-column: 1 / -1;">Hələ ki, heç bir sınaq nəticəniz yoxdur.</p>`;
-            return;
-        }
-
-        container.innerHTML = '';
-        results.forEach((res) => {
-            const percent = Math.round((res.score / res.total) * 100);
-
-            let detailsParsed = [];
-            try {
-                detailsParsed = typeof res.details_json === 'string' ? JSON.parse(res.details_json) : res.details_json;
-            } catch(e) {}
-
-            let correctCount = res.score;
-            let incorrectCount = res.total - res.score;
-            let blankCount = 0;
-
-            if (Array.isArray(detailsParsed)) {
-                correctCount = detailsParsed.filter(d => d.isCorrect).length;
-                incorrectCount = detailsParsed.filter(d => !d.isCorrect && d.userAnswer !== "Cavabsız").length;
-                blankCount = detailsParsed.filter(d => d.userAnswer === "Cavabsız").length;
-            }
-
-            const quizTitle = quizMap[res.quiz_id] || `Sınaq ${res.quiz_id}`;
-
-            const cardDiv = document.createElement('div');
-            cardDiv.style.cssText = "background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 16px; box-sizing: border-box; width: 100%; min-height: 160px;";
-
-            cardDiv.innerHTML = `
-                <div>
-                    <h4 style="font-size: 16px; font-weight: 600; color: #f1f5f9; margin: 0 0 8px 0;">${quizTitle}</h4>
-                    <p style="font-size: 14px; color: #cbd5e1; margin: 0 0 4px 0;">Nəticə: <b>${res.score} / ${res.total}</b></p>
-                </div>
-                <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
-                    <div style="font-size: 12px; color: #94a3b8; display: flex; flex-direction: column; gap: 4px;">
-                        <span style="color: #22c55e;">✅ Düz: ${correctCount}</span>
-                        <span style="color: #ef4444;">❌ Səhv: ${incorrectCount}</span>
-                        <span style="color: #eab308;">⚪ Boş: ${blankCount}</span>
-                    </div>
-                    <div style="width: 55px; height: 55px; border-radius: 50%; background: conic-gradient(#22c55e ${percent}%, #eab308 ${percent}% 80%, #ef4444 0%); display: flex; justify-content: center; align-items: center; position: relative; flex-shrink: 0;">
-                        <div style="width: 43px; height: 43px; background: #18152e; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 12px; font-weight: bold; color: #d8b4fe;">
-                            ${percent}%
-                        </div>
-                    </div>
-                </div>
-                <button data-quizid="${res.quiz_id}" data-resultid="${res.id}" class="reviewDetailsBtn" style="width: 100%; padding: 8px; background: rgba(126, 34, 206, 0.3); border: 1px solid rgba(168, 85, 247, 0.4); color: #d8b4fe; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px;">🔍 Suallara Bax</button>
-            `;
-
-            container.appendChild(cardDiv);
-        });
-
-        document.querySelectorAll('.reviewDetailsBtn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const quizId = e.target.getAttribute('data-quizid');
-                const quizObj = quizFullDataMap[quizId];
-                const resItem = results.find(r => r.id == e.target.getAttribute('data-resultid'));
-                if (quizObj && resItem) {
-                    renderDetailedReview(quizObj, resItem);
-                } else {
-                    alert("Məlumatı tapmaq mümkün olmadı.");
-                }
-            });
-        });
-
-    } catch (err) {
-        document.getElementById('resultsContainer').innerHTML = `<p style="text-align: center; color: #f87171; grid-column: 1 / -1;">Nəticələri yükləmək mümkün olmadı.</p>`;
+        console.error(err);
+        document.getElementById('quiz-container').innerHTML = `<p style="text-align: center; color: #ff4d6d; grid-column: 1/-1;">Sınaqları yükləmək mümkün olmadı.</p>`;
     }
 }
 
@@ -545,22 +380,23 @@ function renderDetailedReview(quizObj, resultItem) {
     }
 
     let reviewHtml = `
-        <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; justify-content: center;">
-            <div style="width: 100%; max-width: 650px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2 style="font-size: 18px; color: #d8b4fe; margin: 0;">📋 Sınaq İcmalı: ${quizObj.title || 'Test'}</h2>
-                    <button id="backToDashboardBtn" style="padding: 8px 14px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;">Kabinetə qayıt</button>
+        <div class="main-wrapper">
+            <div class="user-header">
+                <div>
+                    <h2>📋 Sınaq İcmalı: ${quizObj.title || 'Test'}</h2>
+                    <p>Topladığınız Xal: <b style="color: #00f5d4;">${resultItem.score} / ${resultItem.total}</b></p>
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 16px;">
+                <button id="backToDashboardBtn" class="btn secondary-btn">Kabinetə qayıt</button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 16px;">
     `;
 
     questions.forEach((q, idx) => {
         const options = q.options || q.choices || q.variants || [];
         const questionText = q.question || q.text || q.prompt || q.title || (typeof q === 'string' ? q : "");
         
-        // AI İzahları
-        const simpleExplanation = q.simpleExplanation || q.explanation || q.izah || "Açıq izah mövcud deyil.";
-        const detailedExplanation = q.detailedExplanation || q.detailed_explanation || "Sual üçün əlavə mürəkkəb izah təyin olunmayıb.";
+        const simpleExplanation = q.simpleExplanation || q.explanation || q.izah || "Sual üçün sadə izah təyin olunmayıb.";
+        const detailedExplanation = q.detailedExplanation || q.detailed_explanation || "Sual üçün mürəkkəb ətraflı izah təyin olunmayıb.";
 
         const detailItem = details ? details.find(d => d.questionIndex === idx + 1) : null;
         const userAnsText = detailItem ? detailItem.userAnswer : "Cavabsız";
@@ -605,7 +441,7 @@ function renderDetailedReview(quizObj, resultItem) {
 
         let optionsHtml = "";
         options.forEach((opt) => {
-            let optStyle = "background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #cbd5e1;";
+            let optStyle = "background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #cbd5e1;";
             const isUserChoice = (userAnsText === opt);
             const isCorrectChoice = (correctAnsText === opt);
 
@@ -619,37 +455,35 @@ function renderDetailedReview(quizObj, resultItem) {
                 optStyle = "background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.4); color: #4ade80;";
             }
 
-            optionsHtml += `<div style="padding: 10px 14px; margin-bottom: 6px; border-radius: 8px; font-size: 14px; ${optStyle}">${opt}</div>`;
+            optionsHtml += `<div style="padding: 10px 14px; margin-bottom: 8px; border-radius: 8px; font-size: 14px; ${optStyle}">${opt}</div>`;
         });
 
+        const borderClass = isCorrect ? "review-correct" : "review-wrong";
         const statusBadge = isCorrect 
             ? `<span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold;">Düzgün ✅</span>`
             : `<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold;">Səhv ❌</span>`;
 
         reviewHtml += `
-            <div style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 18px; border-radius: 14px; box-sizing: border-box;">
+            <div class="review-item ${borderClass}">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 12px; font-weight: 600; color: #d8b4fe;">Sual ${idx + 1}</span>
+                    <span style="font-size: 13px; font-weight: 600; color: #e0aaff;">Sual ${idx + 1}</span>
                     ${statusBadge}
                 </div>
                 <p style="font-size: 15px; margin-bottom: 12px; color: #f1f5f9;">${questionText}</p>
                 <div style="margin-bottom: 10px;">${optionsHtml}</div>
 
-                <!-- GEMINI / AI İZAHLAR BÖLMƏSİ -->
-                <div style="margin-top: 12px; padding: 12px; background: rgba(24, 21, 46, 0.8); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 12px;">
-                    <div style="display: flex; align-items: center; gap: 6px; color: #d8b4fe; font-size: 12px; font-weight: bold; margin-bottom: 6px;">
-                        ✨ Gemini AI Sadə İzah
-                    </div>
-                    <p style="margin: 0; font-size: 13px; color: #e2e8f0; line-height: 1.4;">${simpleExplanation}</p>
+                <!-- GEMINI AI İZAHLARI BÖLMƏSİ -->
+                <div class="explanation-box">
+                    <div style="font-weight: bold; margin-bottom: 4px; color: #00f5d4;">💡 Gemini AI Sadə İzah:</div>
+                    <p style="margin: 0; line-height: 1.4; color: #ffffff;">${simpleExplanation}</p>
 
-                    <!-- Mürəkkəb İzah Açılıb-Bağlanan Oxlu Hissə -->
                     <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
-                        <button class="toggle-exp-btn" data-index="${idx}" style="background: transparent; border: none; color: #c084fc; font-size: 12px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; padding: 0;">
+                        <button class="toggle-exp-btn" data-index="${idx}" style="background: transparent; border: none; color: #00b4d8; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 0;">
                             <span>Daha mürəkkəb / ətraflı izah</span>
                             <span id="arrow-${idx}">↓</span>
                         </button>
 
-                        <div id="detailed-exp-${idx}" style="display: none; margin-top: 8px; padding: 10px; background: rgba(0,0,0,0.25); border-radius: 8px; font-size: 12px; color: #cbd5e1; line-height: 1.4; border: 1px solid rgba(255,255,255,0.08);">
+                        <div id="detailed-exp-${idx}" style="display: none; margin-top: 8px; padding: 10px; background: rgba(0,0,0,0.4); border-radius: 8px; font-size: 13px; color: #cbd5e1; line-height: 1.4; border: 1px solid rgba(255,255,255,0.1);">
                             ${detailedExplanation}
                         </div>
                     </div>
@@ -659,7 +493,6 @@ function renderDetailedReview(quizObj, resultItem) {
     });
 
     reviewHtml += `
-                </div>
             </div>
         </div>
     `;
@@ -667,7 +500,7 @@ function renderDetailedReview(quizObj, resultItem) {
     appContainer.innerHTML = reviewHtml;
     document.getElementById('backToDashboardBtn').addEventListener('click', renderStudentDashboard);
 
-    // Ox işarəsi ilə açılıb-bağlanma məntiqi
+    // Ox işarəsi daxilində toggle məntiqləri
     document.querySelectorAll('.toggle-exp-btn').forEach(btn => {
         btn.onclick = function() {
             const idx = this.getAttribute('data-index');
@@ -676,10 +509,10 @@ function renderDetailedReview(quizObj, resultItem) {
 
             if (detailedBox.style.display === 'none') {
                 detailedBox.style.display = 'block';
-                arrow.textContent = '↑'; // Yuxarı baxan ox
+                arrow.textContent = '↑';
             } else {
                 detailedBox.style.display = 'none';
-                arrow.textContent = '↓'; // Aşağı baxan ox
+                arrow.textContent = '↓';
             }
         };
     });
@@ -735,15 +568,15 @@ function renderChangePasswordModal() {
 async function loadAndStartQuiz(quizId) {
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; justify-content: center; align-items: center;">
-            <div style="width: 100%; max-width: 400px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 24px; border-radius: 20px; color: white;">
+            <div style="width: 100%; max-width: 500px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 24px; border-radius: 20px; color: white;">
                 <div id="quizHeader" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                     <h2 id="quizTitle" style="font-size: 18px; color: #d8b4fe; margin: 0;">Sınaq yüklənir...</h2>
                 </div>
                 <div id="timerDisplay" style="display: flex; justify-content: center; align-items: center; background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); padding: 8px 16px; border-radius: 12px; font-weight: bold; color: #f87171; margin: 0 auto 16px auto; width: fit-content; font-size: 15px;"></div>
                 <div id="questionBox" style="margin-bottom: 20px; font-size: 16px; line-height: 1.5;"></div>
                 <div style="display: flex; justify-content: space-between; gap: 10px;">
-                    <button id="prevQuestionBtn" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.1); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; display: none;">Geri</button>
-                    <button id="nextQuestionBtn" style="flex: 1; padding: 10px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">Növbəti</button>
+                    <button id="prevQuestionBtn" class="btn secondary-btn" style="display: none;">Geri</button>
+                    <button id="nextQuestionBtn" class="btn start-btn" style="flex: 1;">Növbəti</button>
                 </div>
             </div>
         </div>
@@ -958,7 +791,7 @@ async function showResults() {
                         </div>
                     </div>
                 </div>
-                <button id="backToCabinetBtn" style="padding: 12px 24px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; width: 100%;">Kabinetə qayıt</button>
+                <button id="backToCabinetBtn" class="btn start-btn" style="width: 100%;">Kabinetə qayıt</button>
             </div>
         </div>
     `;
