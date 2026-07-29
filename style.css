@@ -6,159 +6,221 @@
 }
 
 body {
-    background: linear-gradient(135deg, #05050a, #1a0b2e, #0f0c29);
-    color: #f8fafc;
-    min-height: 100vh;
+    background-color: #1a1638;
+    color: #ffffff;
     display: flex;
     justify-content: center;
-    align-items: center;
-    padding: 15px;
+    padding: 30px 20px;
+    min-height: 100vh;
 }
 
 .main-wrapper {
     width: 100%;
-    max-width: 420px; /* Giriş ekranının eni azaldıldı */
+    max-width: 900px;
 }
 
-.card-container {
-    background: rgba(20, 10, 40, 0.85);
-    backdrop-filter: blur(14px);
-    border: 1px solid rgba(147, 51, 234, 0.3);
+/* User Header */
+.user-header {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 20px 25px;
+    border-radius: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.user-header h2 {
+    font-size: 20px;
+    font-weight: 600;
+}
+
+.user-header p {
+    color: #a0aec0;
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+.user-avatar {
+    width: 48px;
+    height: 48px;
+    background: #9d4edd;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+/* Grid & Cards */
+.section-title {
+    font-size: 18px;
+    margin-bottom: 20px;
+}
+
+.quiz-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 20px;
+}
+
+.quiz-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 16px;
     padding: 24px;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
-    text-align: center;
-}
-
-h1 {
-    font-size: 22px;
-    margin-bottom: 4px;
-    color: #e9d5ff;
-}
-
-.subtitle {
-    font-size: 12px;
-    color: #c084fc;
-    margin-bottom: 18px;
-}
-
-.form-group {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-bottom: 15px;
+    justify-content: space-between;
+    align-items: center;
 }
 
-input[type="text"],
-input[type="number"] {
-    width: 100%;
-    padding: 10px 14px;
-    background: #090514;
-    border: 1px solid #7e22ce;
-    border-radius: 10px;
-    color: white;
-    font-size: 14px;
-    outline: none;
+.quiz-info h4 {
+    font-size: 18px;
+    margin-bottom: 8px;
 }
 
-input:focus {
-    border-color: #a855f7;
+.quiz-info p {
+    color: #a0aec0;
+    font-size: 13px;
+}
+
+/* Buttons */
+.btn-group {
+    display: flex;
+    gap: 8px;
 }
 
 .btn {
-    padding: 11px 18px;
+    padding: 10px 18px;
     border: none;
     border-radius: 10px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: 0.2s;
+    font-size: 14px;
 }
 
-.primary-btn {
-    background: linear-gradient(135deg, #7e22ce, #9333ea);
+.start-btn {
+    background: #7b2cbf;
+    color: #ffffff;
+}
+
+.start-btn:hover {
+    background: #9d4edd;
+}
+
+/* Bitdi (Disabled) Düyməsi */
+.completed-btn {
+    background: #4a4e69 !important;
+    color: #9a8c98 !important;
+    cursor: not-allowed !important;
+}
+
+/* Nəticəm Düyməsi */
+.result-btn {
+    background: #00b4d8;
+    color: #ffffff;
+}
+
+.result-btn:hover {
+    background: #90e0ef;
+    color: #000;
+}
+
+.submit-btn {
+    background: #7b2cbf;
     color: white;
-}
-
-.primary-btn:hover {
-    background: linear-gradient(135deg, #6b21a8, #7e22ce);
-}
-
-.full-btn {
     width: 100%;
+    padding: 14px;
+    margin-top: 20px;
 }
 
 .secondary-btn {
-    background: #2e1065;
-    color: #e9d5ff;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
 }
 
-.secondary-btn:hover {
-    background: #3b0764;
+/* Modal / Detailed Quiz Interface */
+.quiz-card-full {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 30px;
 }
 
-.quiz-container {
-    margin-top: 10px;
-    text-align: left;
-    background: rgba(9, 5, 20, 0.8);
-    padding: 16px;
-    border-radius: 12px;
-    border: 1px solid #7e22ce;
-}
-
-.quiz-header {
-    margin-bottom: 12px;
-    border-bottom: 1px solid #2e1065;
-    padding-bottom: 8px;
-}
-
-.quiz-header h2 {
-    font-size: 16px;
-    color: #e9d5ff;
-}
-
-.question-box {
-    margin: 10px 0 16px 0;
-    font-size: 14px;
-    line-height: 1.4;
-}
-
-.option-btn {
-    display: block;
-    width: 100%;
-    padding: 9px 12px;
-    margin-bottom: 6px;
-    background: #1e0b36;
-    border: 1px solid #7e22ce;
-    color: #f8fafc;
-    border-radius: 8px;
-    text-align: left;
-    cursor: pointer;
-    font-size: 13px;
-    transition: background 0.2s;
-}
-
-.option-btn:hover {
-    background: #2e1065;
-}
-
-.option-btn.selected {
-    background: #9333ea;
-    border-color: #c084fc;
-}
-
-.quiz-nav {
+.quiz-modal-header {
     display: flex;
     justify-content: space-between;
-    gap: 10px;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.question-item {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+}
+
+.question-item p {
+    font-size: 16px;
+    margin-bottom: 12px;
+}
+
+.option-label {
+    display: block;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.option-label:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.option-label input {
+    margin-right: 10px;
+}
+
+/* Nəticələrin Baxışı və İzahlar */
+.score-summary {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 20px 0;
+    color: #00f5d4;
+}
+
+.review-item {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.review-correct {
+    border-left: 4px solid #00f5d4;
+}
+
+.review-wrong {
+    border-left: 4px solid #ff4d6d;
+}
+
+.explanation-box {
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    font-size: 13px;
+    color: #e0aaff;
 }
 
 .hidden {
     display: none !important;
-}
-
-.loading {
-    margin-top: 12px;
-    color: #c084fc;
-    font-size: 13px;
-    font-weight: 500;
 }
