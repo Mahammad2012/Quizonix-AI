@@ -296,11 +296,12 @@ async function renderStudentDashboard() {
                 display: block;
             }
             .btn-disabled {
-                opacity: 0.5;
+                opacity: 0.5 !important;
                 cursor: not-allowed !important;
-                background: rgba(255, 255, 255, 0.08) !important;
+                background: rgba(255, 255, 255, 0.1) !important;
                 color: rgba(255, 255, 255, 0.4) !important;
-                border: 1px solid rgba(255, 255, 255, 0.1) !important;
+                border: 1px solid rgba(255, 255, 255, 0.15) !important;
+                pointer-events: none !important;
             }
         </style>
     `;
@@ -379,7 +380,7 @@ async function renderQuizCards() {
             if (isCompleted) {
                 actionButtonsHTML = `
                     <div style="display: flex; gap: 8px; align-items: center;">
-                        <button disabled class="btn-disabled" style="padding: 8px 14px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; font-weight: 600; font-size: 13px; cursor: not-allowed; white-space: nowrap;">Bitdi</button>
+                        <button disabled class="btn-disabled" style="padding: 8px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; white-space: nowrap;">Bitdi</button>
                         <button id="view-res-btn-${quiz.id}" style="padding: 8px 14px; background: #00b4d8; color: white; border: none; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; white-space: nowrap;">Nəticəm</button>
                     </div>
                 `;
@@ -408,7 +409,7 @@ async function renderQuizCards() {
             } else {
                 const startBtn = card.querySelector(`#quiz-btn-${quiz.id}`);
                 if (startBtn) {
-                    startBtn.addEventListener('click', () => startQuiz(quiz.id, startBtn));
+                    startBtn.addEventListener('click', () => startQuiz(quiz.id));
                 }
             }
         });
@@ -417,12 +418,7 @@ async function renderQuizCards() {
     }
 }
 
-function startQuiz(quizId, buttonElement) {
-    if (buttonElement) {
-        buttonElement.disabled = true;
-        buttonElement.innerText = "Bitdi";
-        buttonElement.classList.add("btn-disabled");
-    }
+function startQuiz(quizId) {
     loadAndStartQuiz(quizId);
 }
 
@@ -818,12 +814,6 @@ function handleNextQuestion() {
         currentQuestionIndex++;
         renderQuestion();
     } else {
-        const nextBtn = document.getElementById('nextQuestionBtn');
-        if (nextBtn) {
-            nextBtn.disabled = true;
-            nextBtn.innerText = "Bitdi";
-            nextBtn.classList.add("btn-disabled");
-        }
         showResults();
     }
 }
