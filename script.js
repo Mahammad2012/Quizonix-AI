@@ -309,7 +309,10 @@ async function renderQuizCards() {
                 const rName = (r.student_name || '').trim().toLowerCase();
                 const rSurname = (r.student_surname || '').trim().toLowerCase();
 
-                if ((r.student_id && r.student_id === currentStudent.id) || (rName === currentStudentName && rSurname === currentStudentSurname)) {
+                const isSameStudent = (r.student_id && String(r.student_id) === String(currentStudent.id)) || 
+                                     (rName === currentStudentName && rSurname === currentStudentSurname);
+
+                if (isSameStudent) {
                     const qId = String(r.quiz_id);
                     completedQuizIds.add(qId);
                     resultMap[qId] = r;
@@ -329,9 +332,9 @@ async function renderQuizCards() {
             let actionButtonsHTML = '';
             if (isCompleted) {
                 actionButtonsHTML = `
-                    <div class="btn-group">
-                        <button disabled class="btn completed-btn">Bitdi</button>
-                        <button id="view-res-btn-${quiz.id}" class="btn result-btn">Nəticəm</button>
+                    <div class="btn-group" style="display: flex; gap: 8px;">
+                        <button disabled class="btn completed-btn" style="background: #4b5563; color: #9ca3af; cursor: not-allowed; opacity: 0.8;">Bitdi</button>
+                        <button id="view-res-btn-${quiz.id}" class="btn result-btn" style="background: #0284c7; color: white;">Nəticəm</button>
                     </div>
                 `;
             } else {
