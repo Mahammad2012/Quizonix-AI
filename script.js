@@ -114,7 +114,7 @@ function showLoadingScreen(message, callback) {
             </div>
         </div>
     `;
-    setTimeout(callback, 1500);
+    setTimeout(callback, 1200);
 }
 
 function renderLoginForm() {
@@ -298,30 +298,36 @@ async function renderQuizCards() {
             return;
         }
 
-        // Cari tələbəyə aid nəticələri tapırıq
-        const studentResults = (results || []).filter(r => 
-            r.student_name && r.student_surname &&
-            r.student_name.trim().toLowerCase() === currentStudent.name.trim().toLowerCase() &&
-            r.student_surname.trim().toLowerCase() === currentStudent.surname.trim().toLowerCase()
-        );
+        const currentStudentName = (currentStudent.name || '').trim().toLowerCase();
+        const currentStudentSurname = (currentStudent.surname || '').trim().toLowerCase();
 
+        const completedQuizIds = new Set();
         const resultMap = {};
-        studentResults.forEach(r => {
-            resultMap[String(r.quiz_id)] = r;
-        });
+
+        if (results && results.length > 0) {
+            results.forEach(r => {
+                const rName = (r.student_name || '').trim().toLowerCase();
+                const rSurname = (r.student_surname || '').trim().toLowerCase();
+
+                if ((r.student_id && r.student_id === currentStudent.id) || (rName === currentStudentName && rSurname === currentStudentSurname)) {
+                    const qId = String(r.quiz_id);
+                    completedQuizIds.add(qId);
+                    resultMap[qId] = r;
+                }
+            });
+        }
 
         container.innerHTML = '';
         quizzes.forEach(quiz => {
             const quizIdStr = String(quiz.id);
+            const isCompleted = completedQuizIds.has(quizIdStr);
             const userResult = resultMap[quizIdStr];
-            const isCompleted = !!userResult;
 
             const card = document.createElement('div');
             card.className = "quiz-card";
 
             let actionButtonsHTML = '';
             if (isCompleted) {
-                // Sizin style.css-dəki düymələrə tam uyğunlaşdırıldı:
                 actionButtonsHTML = `
                     <div class="btn-group">
                         <button disabled class="btn completed-btn">Bitdi</button>
@@ -358,7 +364,7 @@ async function renderQuizCards() {
             }
         });
     } catch (err) {
-        console.error(err);
+        console.error("Kartlar render olunarkən xəta:", err);
         document.getElementById('quiz-container').innerHTML = `<p style="text-align: center; color: #ff4d6d; grid-column: 1/-1;">Sınaqları yükləmək mümkün olmadı.</p>`;
     }
 }
@@ -447,9 +453,9 @@ function renderDetailedReview(quizObj, resultItem) {
 
             if (isUserChoice) {
                 if (isCorrect) {
-                    optStyle = "background: rgba(34, 197, 94, 0.2); border: 1px solid #22c55e; color: #4ade80; font-weight: bold;"; // YAŞIL
+                    optStyle = "background: rgba(34, 197, 94, 0.2); border: 1px solid #22c55e; color: #4ade80; font-weight: bold;";
                 } else {
-                    optStyle = "background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #f87171; font-weight: bold;"; // QIRMIZI
+                    optStyle = "background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #f87171; font-weight: bold;";
                 }
             } else if (isCorrectChoice && !isCorrect) {
                 optStyle = "background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.4); color: #4ade80;";
@@ -472,7 +478,6 @@ function renderDetailedReview(quizObj, resultItem) {
                 <p style="font-size: 15px; margin-bottom: 12px; color: #f1f5f9;">${questionText}</p>
                 <div style="margin-bottom: 10px;">${optionsHtml}</div>
 
-                <!-- GEMINI AI İZAHLARI BÖLMƏSİ -->
                 <div class="explanation-box">
                     <div style="font-weight: bold; margin-bottom: 4px; color: #00f5d4;">💡 Gemini AI Sadə İzah:</div>
                     <p style="margin: 0; line-height: 1.4; color: #ffffff;">${simpleExplanation}</p>
@@ -500,7 +505,6 @@ function renderDetailedReview(quizObj, resultItem) {
     appContainer.innerHTML = reviewHtml;
     document.getElementById('backToDashboardBtn').addEventListener('click', renderStudentDashboard);
 
-    // Ox işarəsi daxilində toggle məntiqləri
     document.querySelectorAll('.toggle-exp-btn').forEach(btn => {
         btn.onclick = function() {
             const idx = this.getAttribute('data-index');
@@ -762,6 +766,7 @@ async function showResults() {
         await supabase.from('student_results').insert([
             {
                 quiz_id: parseInt(currentQuizId) || 0,
+                student_id: currentStudent.id,
                 student_name: currentStudent.name,
                 student_surname: currentStudent.surname,
                 student_class: currentStudent.student_class,
