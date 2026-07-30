@@ -15,6 +15,10 @@ let userAnswers = {};
 let timerInterval = null;
 let timeLeft = 0;
 
+// Rejimləri izləmək üçün: 'student' və ya 'teacher'
+let currentRole = 'student'; 
+let currentTab = 'login'; // 'login' və ya 'register'
+
 function checkSavedSession() {
     const savedStudent = localStorage.getItem('aquarius_current_student');
     const savedTeacher = localStorage.getItem('aquarius_current_teacher');
@@ -42,74 +46,261 @@ function checkSavedSession() {
 }
 
 function renderAuthScreen() {
+    const isTeacher = (currentRole === 'teacher');
+    const isLogin = (currentTab === 'login');
+
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; display: flex; justify-content: center; align-items: center; box-sizing: border-box; padding: 20px;">
             <div style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 20px; width: 100%; max-width: 420px; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);">
                 <div style="text-align: center; margin-bottom: 24px;">
                     <h1 style="font-size: 26px; font-weight: 700; color: #d8b4fe; margin-bottom: 8px;">🎓 Aquarius Kviz AI</h1>
-                    <p style="font-size: 14px; color: #cbd5e1;">Zəhmət olmasa hesabınıza daxil olun və ya qeydiyyatdan keçin</p>
+                    <p style="font-size: 14px; color: #cbd5e1;">
+                        ${isTeacher ? '👨‍🏫 Müəllim paneli' : '🎓 Şagird paneli'}
+                    </p>
                 </div>
 
                 <div style="display: flex; gap: 8px; margin-bottom: 20px;">
-                    <button id="showLoginTab" style="flex: 1; padding: 10px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 14px; transition: 0.2s;">Giriş</button>
-                    <button id="showRegisterTab" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 14px; transition: 0.2s;">Qeydiyyat</button>
+                    <button id="showLoginTab" style="flex: 1; padding: 10px; background: ${isLogin ? '#7e22ce' : 'rgba(255,255,255,0.1)'}; color: ${isLogin ? 'white' : '#cbd5e1'}; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 14px; transition: 0.2s;">Giriş</button>
+                    <button id="showRegisterTab" style="flex: 1; padding: 10px; background: ${!isLogin ? '#7e22ce' : 'rgba(255,255,255,0.1)'}; color: ${!isLogin ? 'white' : '#cbd5e1'}; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 14px; transition: 0.2s;">Qeydiyyat</button>
                 </div>
 
                 <div id="formContainer"></div>
 
                 <div style="text-align: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <a id="teacherLink" href="#" style="color: #c084fc; font-size: 13px; text-decoration: none; font-weight: 600; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px;">
-                        <span>👨‍🏫 Müəllim kimi daxil olmaq üçün klikləyin</span>
+                    <a id="roleToggleLink" href="#" style="color: #c084fc; font-size: 13px; text-decoration: none; font-weight: 600; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px;">
+                        <span>${isTeacher ? '🎓 Şagird kimi daxil olmaq üçün klikləyin' : '👨‍🏫 Müəllim kimi daxil olmaq üçün klikləyin'}</span>
                     </a>
                 </div>
             </div>
         </div>
     `;
 
-    // Müəllim linki üçün hover stili
-    const teacherLink = document.getElementById('teacherLink');
-    teacherLink.addEventListener('mouseenter', () => {
-        teacherLink.style.color = '#ffffff';
-        teacherLink.style.background = 'rgba(192, 132, 252, 0.2)';
-        teacherLink.style.textDecoration = 'underline';
+    const roleToggleLink = document.getElementById('roleToggleLink');
+    roleToggleLink.addEventListener('mouseenter', () => {
+        roleToggleLink.style.color = '#ffffff';
+        roleToggleLink.style.background = 'rgba(192, 132, 252, 0.2)';
+        roleToggleLink.style.textDecoration = 'underline';
     });
-    teacherLink.addEventListener('mouseleave', () => {
-        teacherLink.style.color = '#c084fc';
-        teacherLink.style.background = 'transparent';
-        teacherLink.style.textDecoration = 'none';
+    roleToggleLink.addEventListener('mouseleave', () => {
+        roleToggleLink.style.color = '#c084fc';
+        roleToggleLink.style.background = 'transparent';
+        roleToggleLink.style.textDecoration = 'none';
     });
 
-    teacherLink.addEventListener('click', (e) => {
+    roleToggleLink.addEventListener('click', (e) => {
         e.preventDefault();
-        document.getElementById('showLoginTab').style.background = 'rgba(255,255,255,0.1)';
-        document.getElementById('showLoginTab').style.color = '#cbd5e1';
-        document.getElementById('showRegisterTab').style.background = 'rgba(255,255,255,0.1)';
-        document.getElementById('showRegisterTab').style.color = '#cbd5e1';
-        renderTeacherLoginForm();
+        currentRole = (currentRole === 'student') ? 'teacher' : 'student';
+        renderAuthScreen();
     });
 
-    const resetTabs = () => {
-        document.getElementById('showLoginTab').style.background = 'rgba(255,255,255,0.1)';
-        document.getElementById('showLoginTab').style.color = '#cbd5e1';
-        document.getElementById('showRegisterTab').style.background = 'rgba(255,255,255,0.1)';
-        document.getElementById('showRegisterTab').style.color = '#cbd5e1';
-    };
-
-    document.getElementById('showLoginTab').addEventListener('click', (e) => {
-        resetTabs();
-        e.target.style.background = '#7e22ce';
-        e.target.style.color = 'white';
-        renderLoginForm();
+    document.getElementById('showLoginTab').addEventListener('click', () => {
+        currentTab = 'login';
+        renderAuthScreen();
     });
 
-    document.getElementById('showRegisterTab').addEventListener('click', (e) => {
-        resetTabs();
-        e.target.style.background = '#7e22ce';
-        e.target.style.color = 'white';
-        renderRegisterForm();
+    document.getElementById('showRegisterTab').addEventListener('click', () => {
+        currentTab = 'register';
+        renderAuthScreen();
     });
 
-    renderLoginForm();
+    renderCurrentForm();
+}
+
+function renderCurrentForm() {
+    const container = document.getElementById('formContainer');
+
+    if (currentTab === 'login') {
+        if (currentRole === 'student') {
+            container.innerHTML = `
+                <form id="studentLoginForm">
+                    <input type="text" id="loginName" placeholder="Adınız" required style="${inputStyle()}">
+                    ${createPasswordFieldHTML('loginPassword', 'Şifrəniz')}
+                    <button type="submit" style="${buttonStyle()}">Daxil Ol</button>
+                </form>
+            `;
+            attachPasswordToggle('loginPassword');
+
+            document.getElementById('studentLoginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('loginName').value.trim();
+                const password = document.getElementById('loginPassword').value.trim();
+
+                showLoadingScreen("Yüklənir...", async () => {
+                    try {
+                        const { data, error } = await supabase
+                            .from('students_account')
+                            .select('*')
+                            .ilike('name', name)
+                            .eq('password', password)
+                            .single();
+
+                        if (error || !data) {
+                            alert("Ad və ya şifrə yanlışdır!");
+                            renderAuthScreen();
+                            return;
+                        }
+
+                        currentStudent = data;
+                        localStorage.setItem('aquarius_current_student', JSON.stringify(data));
+                        renderStudentDashboard();
+                    } catch (err) {
+                        alert("Giriş zamanı xəta baş verdi.");
+                        renderAuthScreen();
+                    }
+                });
+            });
+        } else {
+            // Müəllim Girişi
+            container.innerHTML = `
+                <form id="teacherLoginForm">
+                    <input type="text" id="teacherUsername" placeholder="İstifadəçi Adı (məs: Məhəmməd2012!)" required style="${inputStyle()}">
+                    ${createPasswordFieldHTML('teacherPassword', 'Müəllim Şifrəsi')}
+                    <button type="submit" style="${buttonStyle()}">Müəllim Panelinə Giriş</button>
+                </form>
+            `;
+            attachPasswordToggle('teacherPassword');
+
+            document.getElementById('teacherLoginForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const username = document.getElementById('teacherUsername').value.trim();
+                const password = document.getElementById('teacherPassword').value.trim();
+
+                showLoadingScreen("Yüklənir...", async () => {
+                    try {
+                        const { data, error } = await supabase
+                            .from('teachers_account')
+                            .select('*')
+                            .eq('username', username)
+                            .eq('password', password)
+                            .single();
+
+                        if (error || !data) {
+                            alert("İstifadəçi adı və ya şifrə yanlışdır!");
+                            renderAuthScreen();
+                            return;
+                        }
+
+                        currentTeacher = data;
+                        localStorage.setItem('aquarius_current_teacher', JSON.stringify(data));
+                        renderTeacherDashboard();
+                    } catch (err) {
+                        alert("Giriş zamanı xəta baş verdi.");
+                        renderAuthScreen();
+                    }
+                });
+            });
+        }
+    } else {
+        // Qeydiyyat Tabı
+        if (currentRole === 'student') {
+            container.innerHTML = `
+                <form id="studentRegisterForm">
+                    <input type="text" id="regName" placeholder="Adınız" required style="${inputStyle()}">
+                    <input type="text" id="regSurname" placeholder="Soyadınız" required style="${inputStyle()}">
+                    <input type="text" id="regClass" placeholder="Sinfiniz (məsələn: 10A)" required style="${inputStyle()}">
+                    ${createPasswordFieldHTML('regPassword', 'Şifrə yarat')}
+                    <button type="submit" style="${buttonStyle()}">Qeydiyyatdan Keç</button>
+                </form>
+            `;
+            attachPasswordToggle('regPassword');
+
+            document.getElementById('studentRegisterForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('regName').value.trim();
+                const surname = document.getElementById('regSurname').value.trim();
+                const student_class = document.getElementById('regClass').value.trim();
+                const password = document.getElementById('regPassword').value.trim();
+
+                showLoadingScreen("Yüklənir...", async () => {
+                    try {
+                        const { data: existing } = await supabase
+                            .from('students_account')
+                            .select('*')
+                            .ilike('name', name)
+                            .ilike('surname', surname)
+                            .single();
+
+                        if (existing) {
+                            alert("Bu ad və soyadla artıq hesab mövcuddur. Zəhmət olmasa daxil olun.");
+                            renderAuthScreen();
+                            return;
+                        }
+
+                        const { data, error } = await supabase
+                            .from('students_account')
+                            .insert([{ name, surname, student_class, password }])
+                            .select()
+                            .single();
+
+                        if (error) throw error;
+
+                        currentStudent = data;
+                        localStorage.setItem('aquarius_current_student', JSON.stringify(data));
+                        renderStudentDashboard();
+                    } catch (err) {
+                        alert("Qeydiyyat xətası: " + err.message);
+                        renderAuthScreen();
+                    }
+                });
+            });
+        } else {
+            // Müəllim Qeydiyyatı
+            container.innerHTML = `
+                <form id="teacherRegisterForm">
+                    <input type="text" id="tRegName" placeholder="Adınız" required style="${inputStyle()}">
+                    <input type="text" id="tRegSurname" placeholder="Soyadınız" required style="${inputStyle()}">
+                    <input type="text" id="tRegUsername" placeholder="İstifadəçi adı (məs: Məhəmməd2012!)" required style="${inputStyle()}">
+                    ${createPasswordFieldHTML('tRegPassword', 'Şifrə yarat')}
+                    <button type="submit" style="${buttonStyle()}">Müəllim Qeydiyyatı</button>
+                </form>
+            `;
+            attachPasswordToggle('tRegPassword');
+
+            document.getElementById('teacherRegisterForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('tRegName').value.trim();
+                const surname = document.getElementById('tRegSurname').value.trim();
+                const username = document.getElementById('tRegUsername').value.trim();
+                const password = document.getElementById('tRegPassword').value.trim();
+
+                if (username.toLowerCase() === password.toLowerCase()) {
+                    alert("İstifadəçi adı ilə şifrə eyni ola bilməz!");
+                    return;
+                }
+
+                showLoadingScreen("Yüklənir...", async () => {
+                    try {
+                        const { data: existing } = await supabase
+                            .from('teachers_account')
+                            .select('*')
+                            .eq('username', username)
+                            .single();
+
+                        if (existing) {
+                            alert("Bu istifadəçi adı artıq götürülüb!");
+                            renderAuthScreen();
+                            return;
+                        }
+
+                        const { data, error } = await supabase
+                            .from('teachers_account')
+                            .insert([{ name, surname, username, password }])
+                            .select()
+                            .single();
+
+                        if (error) throw error;
+
+                        currentTeacher = data;
+                        localStorage.setItem('aquarius_current_teacher', JSON.stringify(data));
+                        renderTeacherDashboard();
+                    } catch (err) {
+                        alert("Müəllim qeydiyyatı xətası: " + err.message);
+                        renderAuthScreen();
+                    }
+                });
+            });
+        }
+    }
 }
 
 function inputStyle() {
@@ -163,138 +354,13 @@ function showLoadingScreen(message, callback) {
     setTimeout(callback, 1200);
 }
 
-function renderLoginForm() {
-    const container = document.getElementById('formContainer');
-    container.innerHTML = `
-        <form id="loginForm">
-            <input type="text" id="loginName" placeholder="Adınız" required style="${inputStyle()}">
-            <input type="text" id="loginSurname" placeholder="Soyadınız" required style="${inputStyle()}">
-            ${createPasswordFieldHTML('loginPassword', 'Şifrəniz')}
-            <button type="submit" style="${buttonStyle()}">Daxil Ol</button>
-        </form>
-    `;
-    attachPasswordToggle('loginPassword');
-
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = document.getElementById('loginName').value.trim();
-        const surname = document.getElementById('loginSurname').value.trim();
-        const password = document.getElementById('loginPassword').value.trim();
-
-        showLoadingScreen("Yüklənir...", async () => {
-            try {
-                const { data, error } = await supabase
-                    .from('students_account')
-                    .select('*')
-                    .ilike('name', name)
-                    .ilike('surname', surname)
-                    .eq('password', password)
-                    .single();
-
-                if (error || !data) {
-                    alert("Ad, Soyad və ya şifrə yanlışdır!");
-                    renderAuthScreen();
-                    return;
-                }
-
-                currentStudent = data;
-                localStorage.setItem('aquarius_current_student', JSON.stringify(data));
-                renderStudentDashboard();
-            } catch (err) {
-                alert("Giriş zamanı xəta baş verdi.");
-                renderAuthScreen();
-            }
-        });
-    });
-}
-
-function renderRegisterForm() {
-    const container = document.getElementById('formContainer');
-    container.innerHTML = `
-        <form id="registerForm">
-            <input type="text" id="regName" placeholder="Adınız" required style="${inputStyle()}">
-            <input type="text" id="regSurname" placeholder="Soyadınız" required style="${inputStyle()}">
-            <input type="text" id="regClass" placeholder="Sinfiniz (məsələn: 10A)" required style="${inputStyle()}">
-            ${createPasswordFieldHTML('regPassword', 'Şifrə yarat')}
-            <button type="submit" style="${buttonStyle()}">Qeydiyyatdan Keç</button>
-        </form>
-    `;
-    attachPasswordToggle('regPassword');
-
-    document.getElementById('registerForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = document.getElementById('regName').value.trim();
-        const surname = document.getElementById('regSurname').value.trim();
-        const student_class = document.getElementById('regClass').value.trim();
-        const password = document.getElementById('regPassword').value.trim();
-
-        showLoadingScreen("Yüklənir...", async () => {
-            try {
-                const { data: existing } = await supabase
-                    .from('students_account')
-                    .select('*')
-                    .ilike('name', name)
-                    .ilike('surname', surname)
-                    .single();
-
-                if (existing) {
-                    alert("Bu ad və soyadla artıq hesab mövcuddur. Zəhmət olmasa daxil olun.");
-                    renderAuthScreen();
-                    return;
-                }
-
-                const { data, error } = await supabase
-                    .from('students_account')
-                    .insert([{ name, surname, student_class, password }])
-                    .select()
-                    .single();
-
-                if (error) throw error;
-
-                currentStudent = data;
-                localStorage.setItem('aquarius_current_student', JSON.stringify(data));
-                renderStudentDashboard();
-            } catch (err) {
-                alert("Qeydiyyat xətası: " + err.message);
-                renderAuthScreen();
-            }
-        });
-    });
-}
-
-function renderTeacherLoginForm() {
-    const container = document.getElementById('formContainer');
-    container.innerHTML = `
-        <form id="teacherLoginForm">
-            <input type="text" id="teacherUsername" placeholder="Müəllim İstifadəçi Adı" required style="${inputStyle()}">
-            ${createPasswordFieldHTML('teacherPassword', 'Müəllim Şifrəsi')}
-            <button type="submit" style="${buttonStyle()}">Müəllim Panelinə Giriş</button>
-        </form>
-    `;
-    attachPasswordToggle('teacherPassword');
-
-    document.getElementById('teacherLoginForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const username = document.getElementById('teacherUsername').value.trim();
-        const password = document.getElementById('teacherPassword').value.trim();
-
-        if (username === "admin" && password === "123456") {
-            currentTeacher = { username: "Müəllim" };
-            localStorage.setItem('aquarius_current_teacher', JSON.stringify(currentTeacher));
-            renderTeacherDashboard();
-        } else {
-            alert("Müəllim istifadəçi adı və ya şifrə yanlışdır! (Sınaq üçün: admin / 123456)");
-        }
-    });
-}
-
 async function renderStudentDashboard() {
     appContainer.innerHTML = `
         <div class="main-wrapper">
             <div class="user-header">
                 <div>
-                    <h2>Xoş gəldiniz, ${currentStudent.name} ${currentStudent.surname}</h2>
-                    <p>Sinif: ${currentStudent.student_class}</p>
+                    <h2>Xoş gəldiniz, ${currentStudent.name} ${currentStudent.surname || ''}</h2>
+                    <p>Sinif: ${currentStudent.student_class || 'Bilinmir'}</p>
                 </div>
 
                 <div id="profileCircle" class="user-avatar mr-profile-container" style="position: relative; cursor: pointer;" title="Profil menyusu">
@@ -361,7 +427,7 @@ function renderTeacherDashboard() {
         <div class="main-wrapper" style="max-width: 600px; margin: 0 auto; padding: 20px; color: white;">
             <div class="user-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                 <div>
-                    <h2>👨‍🏫 Müəllim Paneli - AI Kviz Yaradan</h2>
+                    <h2>👨‍🏫 Müəllim Paneli (${currentTeacher.name || currentTeacher.username})</h2>
                     <p style="color: #cbd5e1;">Avtomatik AI sınaqlar yaradın və bazaya əlavə edin</p>
                 </div>
                 <button id="teacherLogoutBtn" class="btn secondary-btn" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; padding: 8px 14px; border-radius: 8px; cursor: pointer;">Çıxış</button>
@@ -899,8 +965,8 @@ async function showResults() {
                 quiz_id: parseInt(currentQuizId) || 0,
                 student_id: currentStudent.id,
                 student_name: currentStudent.name,
-                student_surname: currentStudent.surname,
-                student_class: currentStudent.student_class,
+                student_surname: currentStudent.surname || '',
+                student_class: currentStudent.student_class || '',
                 score: score,
                 total: total,
                 details_json: JSON.stringify(details),
@@ -918,7 +984,7 @@ async function showResults() {
             <div style="width: 100%; max-width: 400px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 20px; text-align: center; color: white;">
                 <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 12px; color: #22c55e;">🎉 Sınaq Tamamlandı!</h2>
                 <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; gap: 12px;">
-                    <p style="font-size: 15px; margin: 0;">İştirakçı: <b>${currentStudent.name} ${currentStudent.surname}</b></p>
+                    <p style="font-size: 15px; margin: 0;">İştirakçı: <b>${currentStudent.name} ${currentStudent.surname || ''}</b></p>
                     <p style="font-size: 18px; font-weight: bold; color: #22c55e; margin: 0;">Nəticə: ${score} / ${total}</p>
                     
                     <div style="width: 70px; height: 70px; border-radius: 50%; background: conic-gradient(#22c55e ${percent}%, rgba(255,255,255,0.1) 0%); display: flex; justify-content: center; align-items: center; position: relative;">
@@ -934,10 +1000,6 @@ async function showResults() {
 
     document.getElementById('backToCabinetBtn').addEventListener('click', renderStudentDashboard);
 }
-
-// =========================================================================
-// AI SUAL YARADAN VƏ REDAKTƏ EDƏN MODUL (SUPABASE INTEGRATION)
-// =========================================================================
 
 function generateAIQuestions(topic, questionCount = 5) {
     const generatedQuestions = [];
