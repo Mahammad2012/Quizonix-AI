@@ -1,47 +1,149 @@
 <!DOCTYPE html>
 <html lang="az">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aquarius Kviz AI</title>
-  <link rel="icon" type="image/png" href="Aquarius.png">
-  <link rel="stylesheet" href="style.css">
-  <!-- Supabase JS Library -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aquarius Kviz AI</title>
+    <link rel="icon" type="image/png" href="Aquarius.png">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .hidden { display: none !important; }
+        .mr-profile-container {
+            width: 45px; height: 45px; border-radius: 50%;
+            display: flex; justify-content: center; align-items: center;
+            cursor: pointer; position: relative;
+        }
+        .mr-spinning-border {
+            position: absolute; inset: -3px; border-radius: 50%;
+            border: 3px solid transparent; border-top-color: #ef4444;
+            border-right-color: #eab308; border-bottom-color: #22c55e;
+            border-left-color: transparent; animation: geminiGlowRotate 3s linear infinite;
+            pointer-events: none; filter: drop-shadow(0 0 8px rgba(234, 179, 8, 0.7));
+            display: none;
+        }
+        .mr-profile-container:hover .mr-spinning-border { display: block; }
+        @keyframes geminiGlowRotate { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .input-field { width: 100%; padding: 10px; margin-bottom: 10px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; box-sizing: border-box; }
+    </style>
 </head>
 <body>
 
-  <div class="main-wrapper">
-    <div class="card-container">
+    <div class="main-wrapper">
+        <div class="card-container" style="max-width: 800px; width: 100%;">
+            
+            <!-- 1. GİRİŞ VƏ QEYDİYYAT PANALİ -->
+            <div id="authSection">
+                <h1>✨ Aquarius Kviz AI</h1>
+                <p class="subtitle">Tədris Portalı və AI İzah Sistemi</p>
+                
+                <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                    <button id="tabStudent" class="btn primary-btn" style="flex: 1;">Şagird Panel</button>
+                    <button id="tabTeacher" class="btn secondary-btn" style="flex: 1;">Müəllim Panel</button>
+                </div>
 
-      <!-- Test Axtarış / Giriş Paneli -->
-      <div id="searchSection">
-        <h1>Aquarius Kviz AI</h1>
-        <p>Test kodunu daxil edin və başlayın</p>
-        
-        <div class="input-group">
-          <input type="text" id="quizIdInput" placeholder="Test ID-sini yazın (məs: 1)">
-          <button id="loadQuizBtn">Testi Yüklə</button>
+                <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 20px;">
+                    <span id="btnModeLogin" style="color: #c084fc; font-weight: bold; cursor: pointer; border-bottom: 2px solid #c084fc;">Daxil Ol</span>
+                    <span id="btnModeRegister" style="color: #cbd5e1; cursor: pointer;">Qeydiyyat</span>
+                </div>
+
+                <div id="authFormContainer"></div>
+            </div>
+
+            <!-- 2. ŞAGİRD PANALİ -->
+            <div id="studentDashboard" class="hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px; margin-bottom: 20px;">
+                    <div>
+                        <h2 id="studentWelcomeTitle" style="font-size: 18px; color: #d8b4fe;">Xoş gəldiniz</h2>
+                        <p id="studentGroupSub" style="font-size: 13px; color: #94a3b8;"></p>
+                    </div>
+                    <div id="profileCircle" class="mr-profile-container">
+                        <div class="mr-spinning-border"></div>
+                        <div id="profileAvatar" style="width: 100%; height: 100%; background: linear-gradient(135deg, #7e22ce, #a855f7); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; color: white;">
+                            AK
+                        </div>
+                    </div>
+                </div>
+
+                <h3>📝 Sizin Üçün Sınaqlar</h3>
+                <div id="quizContainer" style="display: flex; flex-wrap: wrap; gap: 16px; margin-top: 15px;">Yüklənir...</div>
+            </div>
+
+            <!-- 3. MÜƏLLİM PANALİ -->
+            <div id="teacherDashboard" class="hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 id="teacherWelcomeTitle" style="font-size: 20px; color: #d8b4fe;">👨‍🏫 Müəllim Portalı</h2>
+                    <button id="tLogoutBtn" class="btn secondary-btn">Çıxış</button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 20px;">
+                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                        <h3 style="font-size: 16px; color: #c084fc; margin-bottom: 10px;">👥 Qrup Yaradın</h3>
+                        <input type="text" id="groupNameInput" class="input-field" placeholder="Qrup Adı (məs: 9A Riyaziyyat)">
+                        <button id="createGroupBtn" class="btn primary-btn full-btn">Qrup Yarat</button>
+                    </div>
+
+                    <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; justify-content: space-between;">
+                        <div>
+                            <h3 style="font-size: 16px; color: #c084fc; margin-bottom: 6px;">📝 Test İdarəçiliyi</h3>
+                            <p style="font-size: 12px; color: #cbd5e1;">Test və Gemini sadə izahlarını əlavə edərək qruplara göndərin.</p>
+                        </div>
+                        <button id="btnOpenCreateQuiz" class="btn primary-btn full-btn">+ Yeni Test Yarat</button>
+                    </div>
+                </div>
+
+                <div style="background: rgba(255,255,255,0.05); padding: 18px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                    <h3 style="font-size: 18px; color: #d8b4fe; margin-bottom: 12px;">📇 Kontaktlar Və Qruplar</h3>
+                    <div id="contactsContainer">Yüklənir...</div>
+                </div>
+            </div>
+
+            <!-- 4. TEST YARATMA PANALİ (MÜƏLLİM) -->
+            <div id="createQuizSection" class="hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2>📝 Yeni Test Yarat</h2>
+                    <button id="cancelCreateQuizBtn" class="btn secondary-btn">Geri Qayıt</button>
+                </div>
+                <input type="text" id="quizTitleInput" class="input-field" placeholder="Testin Adı">
+                <input type="number" id="quizDurationInput" class="input-field" placeholder="Müddət (dəqiqə)">
+                <label style="font-size: 13px; color: #c084fc;">Hədəf Qrup:</label>
+                <select id="quizGroupSelect" class="input-field" style="background: #1e1b4b;"></select>
+                
+                <div id="questionsBuilder"></div>
+                <button id="addQuestionBtn" class="btn secondary-btn full-btn" style="margin-bottom: 15px;">+ Sual Əlavə Et</button>
+                <button id="saveQuizBtn" class="btn primary-btn full-btn">Testi Yayımla</button>
+            </div>
+
+            <!-- 5. KVIZ İŞLƏMƏ EKRANI (ŞAGİRD) -->
+            <div id="quizContainerBox" class="quiz-container hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2 id="quizTitleHeader">Test</h2>
+                    <div id="timerDisplay" style="color: #f87171; font-weight: bold;"></div>
+                </div>
+                <div id="questionBox" class="question-box"></div>
+                <div class="quiz-nav">
+                    <button id="prevQuestionBtn" class="btn secondary-btn">Əvvəlki</button>
+                    <button id="nextQuestionBtn" class="btn primary-btn">Növbəti</button>
+                </div>
+            </div>
+
+            <!-- 6. İZAH VƏ NƏTİCƏ EKRANI (GEMINI) -->
+            <div id="reviewSection" class="hidden">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2>✨ Gemini Sadə İzahlar və Səhvlər</h2>
+                    <button id="backDashFromReview" class="btn secondary-btn">Geri</button>
+                </div>
+                <div id="reviewCardsContainer"></div>
+            </div>
+
+            <div id="loading" class="loading hidden">Yüklənir...</div>
         </div>
-      </div>
-
-      <!-- Test Sahəsi -->
-      <div id="quizSection" style="display: none;">
-        <h2 id="quizTitle"></h2>
-        <div id="questionsContainer"></div>
-        <button id="submitQuizBtn" style="margin-top: 20px;">Nəticəni Göstər</button>
-      </div>
-
-      <!-- Nəticə Sahəsi -->
-      <div id="resultSection" style="display: none;">
-        <h2>Test Bitdi!</h2>
-        <p id="scoreText"></p>
-        <button id="restartBtn">Yenidən Başla</button>
-      </div>
-
     </div>
-  </div>
 
-  <script src="script.js"></script>
+    <!-- Profil Menyusu Dropdown -->
+    <div id="profileDropdown" style="display: none; position: fixed; background: rgba(20, 15, 40, 0.98); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; width: 180px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); z-index: 99999;">
+        <button id="menuLogout" style="width: 100%; padding: 12px; background: none; border: none; color: #f87171; text-align: left; cursor: pointer;">🚪 Çıxış</button>
+    </div>
+
+    <script type="module" src="script.js"></script>
 </body>
 </html>
