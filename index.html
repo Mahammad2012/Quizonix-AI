@@ -1,49 +1,47 @@
 <!DOCTYPE html>
 <html lang="az">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aquarius Kviz AI</title>
-    <link rel="icon" type="image/png" href="Aquarius.png">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aquarius Kviz AI</title>
+  <link rel="icon" type="image/png" href="Aquarius.png">
+  <link rel="stylesheet" href="style.css">
+  <!-- Supabase JS Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-    <div class="main-wrapper">
-        <div class="card-container">
-            
-            <!-- Axtarış Paneli (Test açıldıqda gizlənir) -->
-            <div id="searchSection">
-                <h1>✨ Aquarius Kviz AI</h1>
-                <p class="subtitle">Məlumatları daxil edin və testə başlayın</p>
-                
-                <div class="form-group">
-                    <input type="text" id="studentNameInput" placeholder="Adınız">
-                    <input type="text" id="studentSurnameInput" placeholder="Soyadınız">
-                    <input type="text" id="studentClassInput" placeholder="Sinfiniz (Məs: 10A)">
-                    <input type="number" id="quizIdInput" placeholder="Test ID (Məs: 1)">
-                </div>
+  <div class="main-wrapper">
+    <div class="card-container">
 
-                <!-- "Testi Aç" düyməsi aşağıda yerləşdirildi -->
-                <button id="loadQuizByIdBtn" class="btn primary-btn full-btn">Testi Aç</button>
-            </div>
-
-            <!-- Kviz Ekranı (Test açıldıqda görünür) -->
-            <div id="quizContainer" class="quiz-container hidden">
-                <div class="quiz-header">
-                    <h2 id="quizTitle">Test Başlığı</h2>
-                </div>
-                <div id="questionBox" class="question-box"></div>
-                <div class="quiz-nav">
-                    <button id="prevQuestionBtn" class="btn secondary-btn">Əvvəlki</button>
-                    <button id="nextQuestionBtn" class="btn primary-btn">Növbəti</button>
-                </div>
-            </div>
-            
-            <div id="loading" class="loading hidden">Yüklənir...</div>
+      <!-- Test Axtarış / Giriş Paneli -->
+      <div id="searchSection">
+        <h1>Aquarius Kviz AI</h1>
+        <p>Test kodunu daxil edin və başlayın</p>
+        
+        <div class="input-group">
+          <input type="text" id="quizIdInput" placeholder="Test ID-sini yazın (məs: 1)">
+          <button id="loadQuizBtn">Testi Yüklə</button>
         </div>
-    </div>
+      </div>
 
-    <script type="module" src="script.js"></script>
+      <!-- Test Sahəsi -->
+      <div id="quizSection" style="display: none;">
+        <h2 id="quizTitle"></h2>
+        <div id="questionsContainer"></div>
+        <button id="submitQuizBtn" style="margin-top: 20px;">Nəticəni Göstər</button>
+      </div>
+
+      <!-- Nəticə Sahəsi -->
+      <div id="resultSection" style="display: none;">
+        <h2>Test Bitdi!</h2>
+        <p id="scoreText"></p>
+        <button id="restartBtn">Yenidən Başla</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
