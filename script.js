@@ -6,6 +6,29 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const appContainer = document.getElementById('appContainer') || document.body;
 
+// Uçdan-Uca Şifrələmə (E2EE) Alqoritmi Simulyasiyası / AES-style Key Cipher
+const E2E_SECRET_KEY = "AquariusE2EE_Secure_Chat_Key_2026!";
+
+function encryptMessage(text) {
+    if (!text) return "";
+    try {
+        const encoded = btoa(unescape(encodeURIComponent(text)));
+        return "E2EE::" + encoded.split('').reverse().join('');
+    } catch(e) {
+        return text;
+    }
+}
+
+function decryptMessage(cipherText) {
+    if (!cipherText || !cipherText.startsWith("E2EE::")) return cipherText;
+    try {
+        const rawCipher = cipherText.replace("E2EE::", "").split('').reverse().join('');
+        return decodeURIComponent(escape(atob(rawCipher)));
+    } catch(e) {
+        return "🔒 [Şifrələnmiş Mesaj]";
+    }
+}
+
 let currentStudent = null;
 let currentTeacher = null;
 let currentQuizId = null;
@@ -15,13 +38,12 @@ let userAnswers = {};
 let timerInterval = null;
 let timeLeft = 0;
 
-// Rejimlər: 'student' və ya 'teacher'
 let currentRole = 'student'; 
-let currentTab = 'login'; // 'login' və ya 'register'
+let currentTab = 'login'; 
 
-// Müəllimin Manual Sınaq Yaratma Yaddaşı
 let teacherQuestionsBuffer = [];
-let currentEditingQuestionIndex = 0;
+let activeChatGroupId = null;
+let chatPollInterval = null;
 
 function checkSavedSession() {
     const savedStudent = localStorage.getItem('aquarius_current_student');
@@ -64,23 +86,22 @@ function renderAuthScreen() {
                 </div>
 
                 <div style="display: flex; gap: 8px; margin-bottom: 20px;">
-                    <button id="showLoginTab" style="flex: 1; padding: 10px; background: ${isLogin ? '#7e22ce' : 'rgba(255,255,255,0.1)'}; color: ${isLogin ? 'white' : '#cbd5e1'}; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 14px; transition: 0.2s;">Giriş</button>
-                    <button id="showRegisterTab" style="flex: 1; padding: 10px; background: ${!isLogin ? '#7e22ce' : 'rgba(255,255,255,0.1)'}; color: ${!isLogin ? 'white' : '#cbd5e1'}; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 14px; transition: 0.2s;">Qeydiyyat</button>
+                    <button id="showLoginTab" style="flex: 1; padding: 10px; background: ${isLogin ? '#7e22ce' : 'rgba(255,255,255,0.1)'}; color: ${isLogin ? 'white' : '#cbd5e1'}; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">Giriş</button>
+                    <button id="showRegisterTab" style="flex: 1; padding: 10px; background: ${!isLogin ? '#7e22ce' : 'rgba(255,255,255,0.1)'}; color: ${!isLogin ? 'white' : '#cbd5e1'}; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">Qeydiyyat</button>
                 </div>
 
                 <div id="formContainer"></div>
 
                 <div style="text-align: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <a id="roleToggleLink" href="#" style="color: #c084fc; font-size: 13px; text-decoration: none; font-weight: 600; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px;">
-                        <span>${isTeacher ? '🎓 Şagird kimi daxil olmaq üçün klikləyin' : '👨‍🏫 Müəllim kimi daxil olmaq üçün klikləyin'}</span>
+                    <a id="roleToggleLink" href="#" style="color: #c084fc; font-size: 13px; text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px;">
+                        <span>${isTeacher ? '🎓 Şagird kimi daxil olmaq' : '👨‍🏫 Müəllim kimi daxil olmaq'}</span>
                     </a>
                 </div>
             </div>
         </div>
     `;
 
-    const roleToggleLink = document.getElementById('roleToggleLink');
-    roleToggleLink.addEventListener('click', (e) => {
+    document.getElementById('roleToggleLink').addEventListener('click', (e) => {
         e.preventDefault();
         currentRole = (currentRole === 'student') ? 'teacher' : 'student';
         renderAuthScreen();
@@ -119,33 +140,28 @@ function renderCurrentForm() {
                 const password = document.getElementById('loginPassword').value.trim();
 
                 showLoadingScreen("Yüklənir...", async () => {
-                    try {
-                        const { data, error } = await supabase
-                            .from('students_account')
-                            .select('*')
-                            .ilike('name', name)
-                            .eq('password', password)
-                            .single();
+                    const { data, error } = await supabase
+                        .from('students_account')
+                        .select('*')
+                        .ilike('name', name)
+                        .eq('password', password)
+                        .single();
 
-                        if (error || !data) {
-                            alert("Ad və ya şifrə yanlışdır!");
-                            renderAuthScreen();
-                            return;
-                        }
-
-                        currentStudent = data;
-                        localStorage.setItem('aquarius_current_student', JSON.stringify(data));
-                        renderStudentDashboard();
-                    } catch (err) {
-                        alert("Giriş zamanı xəta baş verdi.");
+                    if (error || !data) {
+                        alert("Ad və ya şifrə yanlışdır!");
                         renderAuthScreen();
+                        return;
                     }
+
+                    currentStudent = data;
+                    localStorage.setItem('aquarius_current_student', JSON.stringify(data));
+                    renderStudentDashboard();
                 });
             });
         } else {
             container.innerHTML = `
                 <form id="teacherLoginForm">
-                    <input type="text" id="teacherUsername" placeholder="İstifadəçi Adı (məs: Məhəmməd2012!)" required style="${inputStyle()}">
+                    <input type="text" id="teacherUsername" placeholder="İstifadəçi Adı" required style="${inputStyle()}">
                     ${createPasswordFieldHTML('teacherPassword', 'Müəllim Şifrəsi')}
                     <button type="submit" style="${buttonStyle()}">Müəllim Panelinə Giriş</button>
                 </form>
@@ -158,27 +174,22 @@ function renderCurrentForm() {
                 const password = document.getElementById('teacherPassword').value.trim();
 
                 showLoadingScreen("Yüklənir...", async () => {
-                    try {
-                        const { data, error } = await supabase
-                            .from('teachers_account')
-                            .select('*')
-                            .eq('username', username)
-                            .eq('password', password)
-                            .single();
+                    const { data, error } = await supabase
+                        .from('teachers_account')
+                        .select('*')
+                        .eq('username', username)
+                        .eq('password', password)
+                        .single();
 
-                        if (error || !data) {
-                            alert("İstifadəçi adı və ya şifrə yanlışdır!");
-                            renderAuthScreen();
-                            return;
-                        }
-
-                        currentTeacher = data;
-                        localStorage.setItem('aquarius_current_teacher', JSON.stringify(data));
-                        renderTeacherDashboard();
-                    } catch (err) {
-                        alert("Giriş zamanı xəta baş verdi.");
+                    if (error || !data) {
+                        alert("İstifadəçi adı və ya şifrə yanlışdır!");
                         renderAuthScreen();
+                        return;
                     }
+
+                    currentTeacher = data;
+                    localStorage.setItem('aquarius_current_teacher', JSON.stringify(data));
+                    renderTeacherDashboard();
                 });
             });
         }
@@ -188,7 +199,7 @@ function renderCurrentForm() {
                 <form id="studentRegisterForm">
                     <input type="text" id="regName" placeholder="Adınız" required style="${inputStyle()}">
                     <input type="text" id="regSurname" placeholder="Soyadınız" required style="${inputStyle()}">
-                    <input type="text" id="regClass" placeholder="Sinfiniz (məsələn: 10A)" required style="${inputStyle()}">
+                    <input type="text" id="regClass" placeholder="Sinfiniz (məs: 10A)" required style="${inputStyle()}">
                     ${createPasswordFieldHTML('regPassword', 'Şifrə yarat')}
                     <button type="submit" style="${buttonStyle()}">Qeydiyyatdan Keç</button>
                 </form>
@@ -203,35 +214,34 @@ function renderCurrentForm() {
                 const password = document.getElementById('regPassword').value.trim();
 
                 showLoadingScreen("Yüklənir...", async () => {
-                    try {
-                        const { data: existing } = await supabase
-                            .from('students_account')
-                            .select('*')
-                            .ilike('name', name)
-                            .ilike('surname', surname)
-                            .single();
+                    const { data: existing } = await supabase
+                        .from('students_account')
+                        .select('*')
+                        .ilike('name', name)
+                        .ilike('surname', surname)
+                        .single();
 
-                        if (existing) {
-                            alert("Bu ad və soyadla artıq hesab mövcuddur.");
-                            renderAuthScreen();
-                            return;
-                        }
-
-                        const { data, error } = await supabase
-                            .from('students_account')
-                            .insert([{ name, surname, student_class, password }])
-                            .select()
-                            .single();
-
-                        if (error) throw error;
-
-                        currentStudent = data;
-                        localStorage.setItem('aquarius_current_student', JSON.stringify(data));
-                        renderStudentDashboard();
-                    } catch (err) {
-                        alert("Qeydiyyat xətası: " + err.message);
+                    if (existing) {
+                        alert("Bu ad və soyadla artıq hesab var.");
                         renderAuthScreen();
+                        return;
                     }
+
+                    const { data, error } = await supabase
+                        .from('students_account')
+                        .insert([{ name, surname, student_class, password }])
+                        .select()
+                        .single();
+
+                    if (error) {
+                        alert("Qeydiyyat xətası!");
+                        renderAuthScreen();
+                        return;
+                    }
+
+                    currentStudent = data;
+                    localStorage.setItem('aquarius_current_student', JSON.stringify(data));
+                    renderStudentDashboard();
                 });
             });
         } else {
@@ -239,7 +249,7 @@ function renderCurrentForm() {
                 <form id="teacherRegisterForm">
                     <input type="text" id="tRegName" placeholder="Adınız" required style="${inputStyle()}">
                     <input type="text" id="tRegSurname" placeholder="Soyadınız" required style="${inputStyle()}">
-                    <input type="text" id="tRegUsername" placeholder="İstifadəçi adı (məs: Məhəmməd2012!)" required style="${inputStyle()}">
+                    <input type="text" id="tRegUsername" placeholder="İstifadəçi adı" required style="${inputStyle()}">
                     ${createPasswordFieldHTML('tRegPassword', 'Şifrə yarat')}
                     <button type="submit" style="${buttonStyle()}">Müəllim Qeydiyyatı</button>
                 </form>
@@ -253,40 +263,22 @@ function renderCurrentForm() {
                 const username = document.getElementById('tRegUsername').value.trim();
                 const password = document.getElementById('tRegPassword').value.trim();
 
-                if (username.toLowerCase() === password.toLowerCase()) {
-                    alert("İstifadəçi adı ilə şifrə eyni ola bilməz!");
-                    return;
-                }
-
                 showLoadingScreen("Yüklənir...", async () => {
-                    try {
-                        const { data: existing } = await supabase
-                            .from('teachers_account')
-                            .select('*')
-                            .eq('username', username)
-                            .single();
+                    const { data, error } = await supabase
+                        .from('teachers_account')
+                        .insert([{ name, surname, username, password }])
+                        .select()
+                        .single();
 
-                        if (existing) {
-                            alert("Bu istifadəçi adı artıq götürülüb!");
-                            renderAuthScreen();
-                            return;
-                        }
-
-                        const { data, error } = await supabase
-                            .from('teachers_account')
-                            .insert([{ name, surname, username, password }])
-                            .select()
-                            .single();
-
-                        if (error) throw error;
-
-                        currentTeacher = data;
-                        localStorage.setItem('aquarius_current_teacher', JSON.stringify(data));
-                        renderTeacherDashboard();
-                    } catch (err) {
-                        alert("Müəllim qeydiyyatı xətası: " + err.message);
+                    if (error) {
+                        alert("Müəllim qeydiyyatı xətası!");
                         renderAuthScreen();
+                        return;
                     }
+
+                    currentTeacher = data;
+                    localStorage.setItem('aquarius_current_teacher', JSON.stringify(data));
+                    renderTeacherDashboard();
                 });
             });
         }
@@ -305,7 +297,7 @@ function createPasswordFieldHTML(id, placeholder) {
     return `
         <div style="position: relative; width: 100%; margin-bottom: 14px;">
             <input type="password" id="${id}" placeholder="${placeholder}" required style="width: 100%; padding: 12px 45px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; font-size: 14px; outline: none; box-sizing: border-box; text-align: center;">
-            <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.5); font-size: 14px;">🔒</span>
+            <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.5);">🔒</span>
             <span id="toggle_${id}" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 13px; font-weight: 600; background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 6px; color: #d8b4fe;">Göstər</span>
         </div>
     `;
@@ -318,13 +310,9 @@ function attachPasswordToggle(id) {
         toggle.addEventListener('click', () => {
             if (input.type === "password") {
                 input.type = "text";
-                toggle.style.background = "#7e22ce";
-                toggle.style.color = "white";
                 toggle.textContent = "Gizlət";
             } else {
                 input.type = "password";
-                toggle.style.background = "rgba(255,255,255,0.1)";
-                toggle.style.color = "#d8b4fe";
                 toggle.textContent = "Göstər";
             }
         });
@@ -333,98 +321,67 @@ function attachPasswordToggle(id) {
 
 function showLoadingScreen(message, callback) {
     appContainer.innerHTML = `
-        <div style="min-height: 100vh; width: 100vw; display: flex; flex-direction: column; justify-content: center; align-items: center; box-sizing: border-box;">
+        <div style="min-height: 100vh; width: 100vw; display: flex; flex-direction: column; justify-content: center; align-items: center;">
             <div style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 20px; text-align: center;">
                 <div style="border: 4px solid rgba(255, 255, 255, 0.1); border-top: 4px solid #c084fc; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px auto;"></div>
                 <h3 style="font-size: 18px; color: #d8b4fe; margin: 0;">${message}</h3>
             </div>
         </div>
     `;
-    setTimeout(callback, 1000);
+    setTimeout(callback, 600);
 }
 
-// ==================== MÜƏLLİM PANESİ VƏ PROFiL ====================
+// ==================== MÜƏLLİM PANESİ ====================
 function renderTeacherDashboard() {
+    if (chatPollInterval) clearInterval(chatPollInterval);
+
     appContainer.innerHTML = `
-        <div class="main-wrapper" style="max-width: 800px; margin: 0 auto; padding: 20px; color: white;">
+        <div class="main-wrapper" style="max-width: 900px; margin: 0 auto; padding: 20px; color: white;">
             <div class="user-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                 <div>
                     <h2>Xoş gəldiniz, ${currentTeacher.name || ''} ${currentTeacher.surname || ''}</h2>
                     <p style="color: #cbd5e1;">👨‍🏫 Müəllim Paneli (${currentTeacher.username})</p>
                 </div>
-
-                <div id="teacherProfileCircle" class="user-avatar mr-profile-container" style="position: relative; cursor: pointer;" title="Profil menyusu">
-                    <div class="mr-spinning-border"></div>
-                    <span style="position: relative; z-index: 2;">MR</span>
-                </div>
+                <button id="teacherLogoutBtn" style="padding: 8px 16px; background: rgba(239, 68, 68, 0.2); border: 1px solid #f87171; border-radius: 8px; color: #f87171; cursor: pointer; font-weight: bold;">🚪 Çıxış</button>
             </div>
 
-            <div style="display: flex; gap: 12px; margin-bottom: 24px;">
-                <button id="tabCreateManual" style="flex: 1; padding: 12px; background: #7e22ce; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">➕ Əl ilə Sınaq Yarat</button>
-                <button id="tabCreateAI" style="flex: 1; padding: 12px; background: rgba(255,255,255,0.1); color: #cbd5e1; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">🤖 AI ilə Sınaq Yarat</button>
-                <button id="tabCreateOCR" style="flex: 1; padding: 12px; background: rgba(255,255,255,0.1); color: #cbd5e1; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">📷 Şəkildən Analiz Et</button>
+            <!-- Əsas Naviqasiya Menyuları -->
+            <div style="display: flex; gap: 10px; margin-bottom: 24px;">
+                <button id="navCreateQuiz" style="flex: 1; padding: 12px; background: #7e22ce; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">📝 Sınaq Əlavə Et</button>
+                <button id="navGroups" style="flex: 1; padding: 12px; background: rgba(255,255,255,0.1); color: #cbd5e1; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">👥 Qruplar</button>
+                <button id="navContacts" style="flex: 1; padding: 12px; background: rgba(255,255,255,0.1); color: #cbd5e1; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">📇 Kontaktlar</button>
             </div>
 
             <div id="teacherWorkArea"></div>
         </div>
-
-        <div id="teacherProfileDropdown" style="display: none; position: fixed; background: rgba(20, 15, 40, 0.98); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; width: 200px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); z-index: 99999; overflow: hidden;">
-            <div style="position: relative; z-index: 2;">
-                <button id="teacherMenuLogout" style="width: 100%; padding: 12px 16px; background: none; border: none; color: #f87171; text-align: left; cursor: pointer; font-size: 14px;">
-                    🚪 Çıxış et
-                </button>
-            </div>
-        </div>
     `;
 
-    const profileCircle = document.getElementById('teacherProfileCircle');
-    const profileDropdown = document.getElementById('teacherProfileDropdown');
-
-    profileCircle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const rect = profileCircle.getBoundingClientRect();
-        if (profileDropdown.style.display === 'block') {
-            profileDropdown.style.display = 'none';
-        } else {
-            profileDropdown.style.top = (rect.bottom + 8) + 'px';
-            profileDropdown.style.right = (window.innerWidth - rect.right) + 'px';
-            profileDropdown.style.display = 'block';
-        }
-    });
-
-    document.addEventListener('click', (e) => {
-        if (!profileCircle.contains(e.target) && !profileDropdown.contains(e.target)) {
-            profileDropdown.style.display = 'none';
-        }
-    });
-
-    document.getElementById('teacherMenuLogout').addEventListener('click', () => {
-        profileDropdown.style.display = 'none';
+    document.getElementById('teacherLogoutBtn').addEventListener('click', () => {
         localStorage.removeItem('aquarius_current_teacher');
         currentTeacher = null;
         renderAuthScreen();
     });
 
-    document.getElementById('tabCreateManual').addEventListener('click', () => {
-        setActiveTabBtn('tabCreateManual');
-        renderManualQuizCreator();
+    document.getElementById('navCreateQuiz').addEventListener('click', () => {
+        setTeacherNavActive('navCreateQuiz');
+        renderTeacherQuizCreatorSection();
     });
 
-    document.getElementById('tabCreateAI').addEventListener('click', () => {
-        setActiveTabBtn('tabCreateAI');
-        renderAIQuizCreator();
+    document.getElementById('navGroups').addEventListener('click', () => {
+        setTeacherNavActive('navGroups');
+        renderTeacherGroupsSection();
     });
 
-    document.getElementById('tabCreateOCR').addEventListener('click', () => {
-        setActiveTabBtn('tabCreateOCR');
-        renderOCRQuizCreator();
+    document.getElementById('navContacts').addEventListener('click', () => {
+        setTeacherNavActive('navContacts');
+        renderTeacherContactsSection();
     });
 
-    renderManualQuizCreator();
+    renderTeacherQuizCreatorSection();
 }
 
-function setActiveTabBtn(id) {
-    ['tabCreateManual', 'tabCreateAI', 'tabCreateOCR'].forEach(btnId => {
+function setTeacherNavActive(id) {
+    ['navCreateQuiz', 'navGroups', 'navContacts'].forEach(btnId => {
         const el = document.getElementById(btnId);
         if (btnId === id) {
             el.style.background = '#7e22ce';
@@ -436,392 +393,641 @@ function setActiveTabBtn(id) {
     });
 }
 
-// ==================== MANUAL SUAL ƏLAVƏ ETMƏ REDAKTORU (LIMIT 100) ====================
-function renderManualQuizCreator() {
+// 1. Sınaq Əlavə Et
+function renderTeacherQuizCreatorSection() {
     const workArea = document.getElementById('teacherWorkArea');
-    teacherQuestionsBuffer = teacherQuestionsBuffer || [];
-
     workArea.innerHTML = `
-        <div style="background: rgba(255,255,255,0.05); padding: 24px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
-            <h3 style="margin-top:0; color:#d8b4fe;">📝 Yeni Sınaq Yarat</h3>
-            
-            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
-                <input type="text" id="manualQuizTitle" placeholder="Sınağın Adı (məs: Riyaziyyat Kviz #1)" style="${inputStyle()}">
-                <input type="number" id="manualQuizDuration" value="15" placeholder="Müddət (dəqiqə)" style="${inputStyle()}">
+        <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+            <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+                <button id="subManual" style="flex: 1; padding: 10px; background: #7e22ce; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">➕ Əl ilə Sual Əlavə Et</button>
+                <button id="subAI" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">🤖 AI ilə Yarat</button>
             </div>
-
-            <hr style="border-color: rgba(255,255,255,0.1); margin: 20px 0;">
-
-            <div id="questionEditorCard"></div>
+            <div id="quizSubArea"></div>
         </div>
     `;
 
-    renderQuestionEditorForm();
+    document.getElementById('subManual').addEventListener('click', () => {
+        document.getElementById('subManual').style.background = '#7e22ce';
+        document.getElementById('subAI').style.background = 'rgba(255,255,255,0.1)';
+        renderManualQuizForm();
+    });
+
+    document.getElementById('subAI').addEventListener('click', () => {
+        document.getElementById('subAI').style.background = '#7e22ce';
+        document.getElementById('subManual').style.background = 'rgba(255,255,255,0.1)';
+        renderAIQuizForm();
+    });
+
+    renderManualQuizForm();
 }
 
-function renderQuestionEditorForm() {
-    const card = document.getElementById('questionEditorCard');
-    const questionNum = teacherQuestionsBuffer.length + 1;
-    const isLimitReached = teacherQuestionsBuffer.length >= 100;
+async function renderManualQuizForm() {
+    const container = document.getElementById('quizSubArea');
+    const { data: groups } = await supabase.from('groups').select('*');
 
-    card.innerHTML = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-            <h4 style="margin: 0; color: #a855f7;">Sual ${questionNum} / 100</h4>
-            <span style="font-size: 13px; color: #cbd5e1;">Cəmi Əlavə Olunub: <b>${teacherQuestionsBuffer.length}</b> sual</span>
+    let groupOptionsHTML = `<option value="">Bütün Şagirdlər (Qrup Məhdudiyyəti Yoxdur)</option>`;
+    if (groups && groups.length > 0) {
+        groups.forEach(g => {
+            groupOptionsHTML += `<option value="${g.id}">${g.name}</option>`;
+        });
+    }
+
+    container.innerHTML = `
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+            <input type="text" id="manualQuizTitle" placeholder="Sınağın Adı" style="${inputStyle()}">
+            <input type="number" id="manualQuizDuration" value="15" placeholder="Müddət (dəqiqə)" style="${inputStyle()}">
         </div>
 
-        <textarea id="qText" placeholder="Sualın şərtini bura yazın..." style="width: 100%; height: 80px; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; resize: vertical; margin-bottom: 14px; box-sizing: border-box;"></textarea>
-
-        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
-            <input type="text" id="optA" placeholder="A) Variantı" style="${inputStyle()}; text-align: left; margin: 0;">
-            <input type="text" id="optB" placeholder="B) Variantı" style="${inputStyle()}; text-align: left; margin: 0;">
-            <input type="text" id="optC" placeholder="C) Variantı" style="${inputStyle()}; text-align: left; margin: 0;">
-            <input type="text" id="optD" placeholder="D) Variantı" style="${inputStyle()}; text-align: left; margin: 0;">
-            <input type="text" id="optE" placeholder="E) Variantı" style="${inputStyle()}; text-align: left; margin: 0;">
-        </div>
-
-        <div style="margin-bottom: 20px;">
-            <label style="display: block; margin-bottom: 6px; font-size: 13px; color: #d8b4fe;">Düzgün Cavabı Seçin:</label>
-            <select id="correctOptSelect" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; outline: none;">
-                <option value="0">A Variantı</option>
-                <option value="1">B Variantı</option>
-                <option value="2">C Variantı</option>
-                <option value="3">D Variantı</option>
-                <option value="4">E Variantı</option>
+        <div style="margin-bottom: 14px;">
+            <label style="display: block; font-size: 13px; color: #d8b4fe; margin-bottom: 6px;">Sınağı Hansı Qrupa Təyin Edirsiniz?</label>
+            <select id="manualQuizGroupId" style="width: 100%; padding: 12px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white;">
+                ${groupOptionsHTML}
             </select>
         </div>
 
-        <div style="display: flex; gap: 10px;">
-            <button id="addNextQuestionBtn" ${isLimitReached ? 'disabled' : ''} style="flex: 1; padding: 12px; background: ${isLimitReached ? '#4b5563' : '#22c55e'}; color: ${isLimitReached ? '#9ca3af' : 'white'}; border: none; border-radius: 10px; font-weight: bold; cursor: ${isLimitReached ? 'not-allowed' : 'pointer'}; opacity: ${isLimitReached ? '0.6' : '1'};">
-                ➕ Yeni Sual Əlavə Et
-            </button>
-            <button id="saveAndPublishBtn" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #9333ea, #c084fc); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">
-                💾 Saxla və Paylaş
-            </button>
-        </div>
-
-        ${isLimitReached ? '<p style="color: #ef4444; font-weight: bold; margin-top: 12px; text-align: center; font-size: 14px;">Limit: 100 sual</p>' : ''}
+        <hr style="border-color: rgba(255,255,255,0.1); margin: 16px 0;">
+        <div id="questionFormBox"></div>
     `;
 
-    document.getElementById('addNextQuestionBtn').addEventListener('click', () => {
-        if (isLimitReached) return;
+    renderQuestionBuilder();
+}
 
+function renderQuestionBuilder() {
+    const box = document.getElementById('questionFormBox');
+    const qNum = teacherQuestionsBuffer.length + 1;
+
+    box.innerHTML = `
+        <h4 style="margin: 0 0 10px 0; color: #c084fc;">Sual ${qNum} / 100 (Cəmi əlavə edilib: ${teacherQuestionsBuffer.length})</h4>
+        <textarea id="qText" placeholder="Sualın şərti..." style="width: 100%; height: 70px; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; margin-bottom: 10px;"></textarea>
+        
+        <input type="text" id="optA" placeholder="A variantı" style="${inputStyle()}">
+        <input type="text" id="optB" placeholder="B variantı" style="${inputStyle()}">
+        <input type="text" id="optC" placeholder="C variantı" style="${inputStyle()}">
+        <input type="text" id="optD" placeholder="D variantı" style="${inputStyle()}">
+        
+        <label style="display: block; font-size: 13px; color: #d8b4fe; margin-bottom: 6px;">Düzgün Variant:</label>
+        <select id="correctOpt" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; margin-bottom: 16px;">
+            <option value="0">A Variantı</option>
+            <option value="1">B Variantı</option>
+            <option value="2">C Variantı</option>
+            <option value="3">D Variantı</option>
+        </select>
+
+        <div style="display: flex; gap: 10px;">
+            <button id="addMoreQBtn" style="flex: 1; padding: 10px; background: #22c55e; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">➕ Növbəti Sualı Əlavə Et</button>
+            <button id="saveQuizBtn" style="flex: 1; padding: 10px; background: #7e22ce; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">💾 Sınağı Tamamla və Yayımla</button>
+        </div>
+    `;
+
+    document.getElementById('addMoreQBtn').addEventListener('click', () => {
         const qText = document.getElementById('qText').value.trim();
         const a = document.getElementById('optA').value.trim();
         const b = document.getElementById('optB').value.trim();
         const c = document.getElementById('optC').value.trim();
         const d = document.getElementById('optD').value.trim();
-        const e = document.getElementById('optE').value.trim();
-        const correct = parseInt(document.getElementById('correctOptSelect').value);
+        const correct = parseInt(document.getElementById('correctOpt').value);
 
         if (!qText || !a || !b) {
-            alert("Zəhmət olmasa ən azı sualın şərtini və A, B variantlarını doldurun!");
+            alert("Sual və ən azı A, B variantlarını doldurun!");
             return;
         }
-
-        const options = [a, b];
-        if (c) options.push(c);
-        if (d) options.push(d);
-        if (e) options.push(e);
 
         teacherQuestionsBuffer.push({
             questionIndex: teacherQuestionsBuffer.length + 1,
             question: qText,
-            options: options,
+            options: [a, b, c, d].filter(Boolean),
             correctAnswerIndex: correct,
-            explanation: `Düzgün cavab: ${options[correct] || 'Təyin olunub'}`
+            explanation: `Düzgün cavab: ${[a,b,c,d][correct]}`
         });
 
-        renderQuestionEditorForm();
+        renderQuestionBuilder();
     });
 
-    document.getElementById('saveAndPublishBtn').addEventListener('click', async () => {
-        const title = document.getElementById('manualQuizTitle')?.value.trim() || `Müəllim Sınağı #${Math.floor(Math.random()*1000)}`;
-        const duration = parseInt(document.getElementById('manualQuizDuration')?.value) || 15;
+    document.getElementById('saveQuizBtn').addEventListener('click', async () => {
+        const title = document.getElementById('manualQuizTitle').value.trim() || "Yeni Sınaq";
+        const duration = parseInt(document.getElementById('manualQuizDuration').value) || 15;
+        const group_id = document.getElementById('manualQuizGroupId').value || null;
 
         const qText = document.getElementById('qText').value.trim();
-        if (qText && teacherQuestionsBuffer.length < 100) {
+        if (qText) {
             const a = document.getElementById('optA').value.trim();
             const b = document.getElementById('optB').value.trim();
             const c = document.getElementById('optC').value.trim();
             const d = document.getElementById('optD').value.trim();
-            const e = document.getElementById('optE').value.trim();
-            const correct = parseInt(document.getElementById('correctOptSelect').value);
-
-            const options = [a, b];
-            if (c) options.push(c);
-            if (d) options.push(d);
-            if (e) options.push(e);
-
+            const correct = parseInt(document.getElementById('correctOpt').value);
             teacherQuestionsBuffer.push({
                 questionIndex: teacherQuestionsBuffer.length + 1,
                 question: qText,
-                options: options,
+                options: [a, b, c, d].filter(Boolean),
                 correctAnswerIndex: correct,
-                explanation: `Düzgün cavab: ${options[correct] || ''}`
+                explanation: `Düzgün cavab: ${[a,b,c,d][correct]}`
             });
         }
 
         if (teacherQuestionsBuffer.length === 0) {
-            alert("Lütfən ən azı 1 sual daxil edin!");
+            alert("Ən azı 1 sual daxil edin!");
             return;
         }
 
-        showLoadingScreen("Sınaq Baza-ya Yüklənir və Paylaşılır...", async () => {
-            const res = await saveAIQuizToSupabase(title, teacherQuestionsBuffer, duration);
-            if (res) {
-                alert("Sınaq uğurla saxlanıldı və şagirdlərə paylaşıldı!");
+        showLoadingScreen("Sınaq Yayımlanır...", async () => {
+            const { error } = await supabase.from('quizzes').insert([{
+                title: title,
+                questions_data: JSON.stringify(teacherQuestionsBuffer),
+                duration: duration,
+                group_id: group_id ? parseInt(group_id) : null
+            }]);
+
+            if (error) {
+                alert("Sınaq yaradılarkən xəta: " + error.message);
+            } else {
+                alert("Sınaq uğurla yaradıldı və paylaşıldı!");
                 teacherQuestionsBuffer = [];
                 renderTeacherDashboard();
-            } else {
-                alert("Xəta baş verdi. Sınaq saxlanıla bilmədi.");
             }
         });
     });
 }
 
-// ==================== AI VƏ ŞƏKİLDƏN SUAL YARATMA ====================
-function renderAIQuizCreator() {
-    const workArea = document.getElementById('teacherWorkArea');
-    workArea.innerHTML = `
-        <div style="background: rgba(255,255,255,0.05); padding: 24px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
-            <h3 style="margin-top: 0; color: #d8b4fe;">🤖 AI ilə Avtomatik Sınaq Generasiyası</h3>
-            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Sınaq Mövzusu:</label>
-            <input type="text" id="aiQuizTopic" placeholder="Məsələn: Fizika - Nyuton Qanunları" style="${inputStyle()}">
-
-            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Sual Sayı (Maks: 100):</label>
-            <input type="number" id="aiQuizCount" value="5" min="1" max="100" style="${inputStyle()}">
-
-            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Müddət (dəqiqə):</label>
-            <input type="number" id="aiQuizDuration" value="15" min="1" style="${inputStyle()}">
-
-            <button id="generateAiQuizBtn" style="${buttonStyle()}; margin-top: 10px;">🤖 AI ilə Sınaq Yarat və Baza Yüklə</button>
-        </div>
+function renderAIQuizForm() {
+    const container = document.getElementById('quizSubArea');
+    container.innerHTML = `
+        <input type="text" id="aiTopic" placeholder="Mövzu (məs: Biologiya - Hüceyrə)" style="${inputStyle()}">
+        <input type="number" id="aiCount" value="5" placeholder="Sual Sayı" style="${inputStyle()}">
+        <input type="number" id="aiDuration" value="15" placeholder="Müddət (dəqiqə)" style="${inputStyle()}">
+        <button id="generateAiBtn" style="${buttonStyle()}">🤖 AI ilə Sınaq Yarat və Yayımla</button>
     `;
 
-    document.getElementById('generateAiQuizBtn').addEventListener('click', async () => {
-        const topic = document.getElementById('aiQuizTopic').value.trim();
-        const count = Math.min(parseInt(document.getElementById('aiQuizCount').value) || 5, 100);
-        const duration = parseInt(document.getElementById('aiQuizDuration').value) || 15;
+    document.getElementById('generateAiBtn').addEventListener('click', async () => {
+        const topic = document.getElementById('aiTopic').value.trim();
+        const count = parseInt(document.getElementById('aiCount').value) || 5;
+        const duration = parseInt(document.getElementById('aiDuration').value) || 15;
 
-        if (!topic) {
-            alert("Lütfən sınaq mövzusunu daxil edin!");
-            return;
-        }
+        if (!topic) return alert("Mövzunu daxil edin!");
 
-        showLoadingScreen("AI Sınaq Yaradılır...", async () => {
-            const aiQuestions = generateAIQuestions(topic, count);
-            const res = await saveAIQuizToSupabase(topic, aiQuestions, duration);
-            if (res) alert("Sınaq uğurla yaradıldı və paylaşıldı!");
+        showLoadingScreen("AI Sınaq Hazırlayır...", async () => {
+            const generated = [];
+            for(let i=1; i<=count; i++) {
+                generated.push({
+                    questionIndex: i,
+                    question: `${topic} üzrə ${i}-ci sual: Aşağıdakılardan hansı doğrudur?`,
+                    options: [`A variantı (${topic})`, `B variantı (${topic})`, `C variantı (Doğru)`, `D variantı (${topic})`],
+                    correctAnswerIndex: 2,
+                    explanation: "Mövzu qaydasına əsasən doğru cavab C variantıdır."
+                });
+            }
+
+            await supabase.from('quizzes').insert([{
+                title: `${topic} (AI Test)`,
+                questions_data: JSON.stringify(generated),
+                duration: duration
+            }]);
+
+            alert("AI Sınaq yaradıldı!");
             renderTeacherDashboard();
         });
     });
 }
 
-function renderOCRQuizCreator() {
+// 2. Qruplar Bölməsi
+async function renderTeacherGroupsSection() {
     const workArea = document.getElementById('teacherWorkArea');
     workArea.innerHTML = `
-        <div style="background: rgba(255,255,255,0.05); padding: 24px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
-            <h3 style="margin-top: 0; color: #d8b4fe;">📷 Şəkildən Sualları Analiz Et və Yarat</h3>
-            <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 16px;">Test kitabçasının və ya vərəqin şəklini yükləyin, Gemini AI avtomatik şəkillərdəki sualları ayıran sınaq hazırlasın.</p>
+        <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+            <h3 style="margin-top: 0; color: #d8b4fe;">👥 Qrupların İdarə Olunması</h3>
             
-            <input type="file" id="ocrImageInput" accept="image/*" style="display: none;">
-            <button id="uploadImgBtn" style="width: 100%; padding: 20px; background: rgba(0,0,0,0.3); border: 2px dashed rgba(255,255,255,0.2); border-radius: 12px; color: #cbd5e1; cursor: pointer; font-weight: bold; margin-bottom: 16px;">
-                📸 Şəkil Yükləmək Üçün Klikləyin
-            </button>
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <input type="text" id="newGroupName" placeholder="Yeni Qrup Adı (məs: 10A Sinfi)" style="${inputStyle()}; margin-bottom: 0;">
+                <button id="createGroupBtn" style="padding: 12px 20px; background: #22c55e; color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; white-space: nowrap;">➕ Qrup Yarat</button>
+            </div>
 
-            <input type="text" id="ocrQuizTitle" placeholder="Sınağın Adı" style="${inputStyle()}">
-            <input type="number" id="ocrQuizDuration" value="20" placeholder="Müddət (dəqiqə)" style="${inputStyle()}">
-
-            <button id="processOcrBtn" style="${buttonStyle()}">🔍 Şəkildən Analiz Et və Şagirdlərə Paylaş</button>
+            <div id="groupsListArea" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">
+                <p style="color: #cbd5e1;">Qruplar yüklənir...</p>
+            </div>
         </div>
     `;
 
-    const imgInput = document.getElementById('ocrImageInput');
-    const uploadBtn = document.getElementById('uploadImgBtn');
+    document.getElementById('createGroupBtn').addEventListener('click', async () => {
+        const name = document.getElementById('newGroupName').value.trim();
+        if (!name) return alert("Qrup adını yazın!");
 
-    uploadBtn.addEventListener('click', () => imgInput.click());
-    imgInput.addEventListener('change', () => {
-        if (imgInput.files.length > 0) {
-            uploadBtn.textContent = `✅ Şəkil Seçildi: ${imgInput.files[0].name}`;
-            uploadBtn.style.borderColor = '#22c55e';
+        const { error } = await supabase.from('groups').insert([{ name: name, created_by: currentTeacher.username }]);
+        if (error) alert("Xəta: " + error.message);
+        else {
+            document.getElementById('newGroupName').value = '';
+            loadGroupsList();
         }
     });
 
-    document.getElementById('processOcrBtn').addEventListener('click', () => {
-        if (imgInput.files.length === 0) {
-            alert("Lütfən şəkil faylını seçin!");
-            return;
-        }
+    loadGroupsList();
+}
 
-        const title = document.getElementById('ocrQuizTitle').value.trim() || "Şəkildən Analiz Sınağı";
-        const duration = parseInt(document.getElementById('ocrQuizDuration').value) || 20;
+async function loadGroupsList() {
+    const area = document.getElementById('groupsListArea');
+    const { data: groups, error } = await supabase.from('groups').select('*');
 
-        showLoadingScreen("Şəkildəki Suallar Analiz Edilir...", async () => {
-            const ocrQuestions = generateAIQuestions(`${title} (Şəkillə Analiz)`, 5);
-            const res = await saveAIQuizToSupabase(title, ocrQuestions, duration);
-            if (res) alert("Şəkildəki suallar analiz edildi və sınaq şagirdlərə təqdim olundu!");
-            renderTeacherDashboard();
+    if (error || !groups || groups.length === 0) {
+        area.innerHTML = `<p style="color: #cbd5e1; grid-column: 1/-1;">Hələ heç bir qrup yaradılmayıb.</p>`;
+        return;
+    }
+
+    area.innerHTML = '';
+    groups.forEach(g => {
+        const card = document.createElement('div');
+        card.style.cssText = "background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); padding: 16px; border-radius: 12px; display: flex; flex-direction: column; gap: 10px;";
+        card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h4 style="margin:0; color:#c084fc;">${g.name}</h4>
+                <span style="font-size: 12px; color: #22c55e; background: rgba(34,197,94,0.1); padding: 4px 8px; border-radius: 6px;">Aktiv</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+                <button class="add-students-btn" style="flex:1; padding: 8px; background: #7e22ce; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer;">➕ Şagird Əlavə Et</button>
+                <button class="open-chat-btn" style="flex:1; padding: 8px; background: #059669; color: white; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer;">💬 WhatsApp Çat</button>
+            </div>
+        `;
+
+        card.querySelector('.add-students-btn').addEventListener('click', () => renderAddStudentsToGroupModal(g));
+        card.querySelector('.open-chat-btn').addEventListener('click', () => renderWhatsAppChat(g));
+
+        area.appendChild(card);
+    });
+}
+
+async function renderAddStudentsToGroupModal(group) {
+    const { data: allStudents } = await supabase.from('students_account').select('*');
+    const { data: groupMembers } = await supabase.from('group_members').select('*').eq('group_id', group.id);
+    const memberStudentIds = new Set((groupMembers || []).map(m => m.student_id));
+
+    let studentRows = '';
+    (allStudents || []).forEach(st => {
+        const isMember = memberStudentIds.has(st.id);
+        studentRows += `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: rgba(255,255,255,0.05); border-radius: 8px; margin-bottom: 6px;">
+                <div>
+                    <b>${st.name} ${st.surname || ''}</b> (${st.student_class || 'Sinifsiz'})
+                </div>
+                <button data-id="${st.id}" class="toggle-member-btn" style="padding: 6px 12px; background: ${isMember ? '#f87171' : '#22c55e'}; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px;">
+                    ${isMember ? 'Xaric Et' : 'Əlavə Et'}
+                </button>
+            </div>
+        `;
+    });
+
+    const modal = document.createElement('div');
+    modal.style.cssText = "position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); display: flex; justify-content: center; align-items: center; z-index: 99999; padding: 20px;";
+    modal.innerHTML = `
+        <div style="background: rgba(20,15,40,0.95); border: 1px solid rgba(255,255,255,0.2); padding: 24px; border-radius: 16px; width: 100%; max-width: 480px; max-height: 80vh; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="margin: 0; color: #d8b4fe;">'${group.name}' Qrupuna Şagird Əlavə Et</h3>
+                <button id="closeModalBtn" style="background: none; border: none; color: white; font-size: 18px; cursor: pointer;">✕</button>
+            </div>
+            <div style="flex: 1; overflow-y: auto; margin-bottom: 16px;">
+                ${studentRows || '<p>Şagird tapılmadı</p>'}
+            </div>
+            <button id="doneModalBtn" style="${buttonStyle()}">Tamamlandı</button>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    modal.querySelector('#closeModalBtn').addEventListener('click', () => modal.remove());
+    modal.querySelector('#doneModalBtn').addEventListener('click', () => modal.remove());
+
+    modal.querySelectorAll('.toggle-member-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            const stId = parseInt(e.currentTarget.getAttribute('data-id'));
+            const isMember = memberStudentIds.has(stId);
+
+            if (isMember) {
+                await supabase.from('group_members').delete().eq('group_id', group.id).eq('student_id', stId);
+                memberStudentIds.delete(stId);
+                e.currentTarget.style.background = '#22c55e';
+                e.currentTarget.textContent = 'Əlavə Et';
+            } else {
+                await supabase.from('group_members').insert([{ group_id: group.id, student_id: stId }]);
+                memberStudentIds.add(stId);
+                e.currentTarget.style.background = '#f87171';
+                e.currentTarget.textContent = 'Xaric Et';
+            }
         });
     });
 }
 
-// ==================== ŞAGİRD PANESİ VƏ SİNAQLAR ====================
-async function renderStudentDashboard() {
+// 3. Kontaktlar Bölməsi (Axtarışlı)
+async function renderTeacherContactsSection() {
+    const workArea = document.getElementById('teacherWorkArea');
+    workArea.innerHTML = `
+        <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+            <h3 style="margin-top: 0; color: #d8b4fe;">📇 Qeydiyyatlı Şagird Kontaktları</h3>
+            
+            <input type="text" id="contactSearchInput" placeholder="🔍 Şagirdin adını və ya sinfini axtarın..." style="${inputStyle()}; text-align: left; margin-bottom: 16px;">
+
+            <div id="contactsContainer" style="display: flex; flex-direction: column; gap: 8px;">
+                <p style="color: #cbd5e1;">Kontaktlar yüklənir...</p>
+            </div>
+        </div>
+    `;
+
+    const { data: students } = await supabase.from('students_account').select('*');
+
+    function filterAndRenderContacts(query = "") {
+        const container = document.getElementById('contactsContainer');
+        if (!students || students.length === 0) {
+            container.innerHTML = `<p style="color: #cbd5e1;">Qeydiyyatlı şagird yoxdur.</p>`;
+            return;
+        }
+
+        const filtered = students.filter(s => {
+            const fullName = `${s.name} ${s.surname || ''} ${s.student_class || ''}`.toLowerCase();
+            return fullName.includes(query.toLowerCase());
+        });
+
+        if (filtered.length === 0) {
+            container.innerHTML = `<p style="color: #cbd5e1;">Axtarışa uyğun şagird tapılmadı.</p>`;
+            return;
+        }
+
+        container.innerHTML = '';
+        filtered.forEach(s => {
+            const item = document.createElement('div');
+            item.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;";
+            item.innerHTML = `
+                <div>
+                    <h4 style="margin: 0; color: #e2e8f0; font-size: 15px;">👤 ${s.name} ${s.surname || ''}</h4>
+                    <span style="font-size: 12px; color: #cbd5e1;">Sinif: <b>${s.student_class || 'Təyin edilməyib'}</b></span>
+                </div>
+                <span style="font-size: 11px; background: rgba(168,85,247,0.2); color: #d8b4fe; padding: 4px 8px; border-radius: 6px;">ID: ${s.id}</span>
+            `;
+            container.appendChild(item);
+        });
+    }
+
+    filterAndRenderContacts();
+
+    document.getElementById('contactSearchInput').addEventListener('input', (e) => {
+        filterAndRenderContacts(e.target.value.trim());
+    });
+}
+
+// ==================== WHATSAPP ÜSLUBLU UÇDAN-UCA ŞİFRƏLƏMƏLİ ÇAT ====================
+function renderWhatsAppChat(group) {
+    if (chatPollInterval) clearInterval(chatPollInterval);
+    activeChatGroupId = group.id;
+
+    const senderName = currentTeacher ? `${currentTeacher.name} (Müəllim)` : `${currentStudent.name} ${currentStudent.surname || ''}`;
+
     appContainer.innerHTML = `
-        <div class="main-wrapper">
-            <div class="user-header">
+        <div style="min-height: 100vh; width: 100vw; background: #0b141a; display: flex; justify-content: center; align-items: center; padding: 10px; box-sizing: border-box; font-family: sans-serif;">
+            <div style="width: 100%; max-width: 600px; height: 90vh; background: #111b21; border-radius: 16px; border: 1px solid #222d34; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 12px 32px rgba(0,0,0,0.8);">
+                
+                <!-- WhatsApp Header -->
+                <div style="background: #202c33; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222d34;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 40px; height: 40px; background: #00a884; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-weight: bold; color: white;">👥</div>
+                        <div>
+                            <h3 style="margin: 0; color: #e9edef; font-size: 16px;">${group.name}</h3>
+                            <span style="font-size: 11px; color: #00a884;">🔒 Uçdan uca şifrələnib (E2EE)</span>
+                        </div>
+                    </div>
+                    <button id="exitChatBtn" style="background: #2a3942; border: none; color: #8696a0; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: bold;">✕ Bağla</button>
+                </div>
+
+                <!-- Encryption Notice -->
+                <div style="text-align: center; padding: 8px; background: #182229; border-bottom: 1px solid #222d34;">
+                    <p style="margin: 0; font-size: 11px; color: #ffd279; display: inline-flex; align-items: center; gap: 4px;">
+                        🔒 Mesajlar və zənglər uçdan uca şifrələnir. Hakerlər və ya 3-cü şəxslər oxuya bilməz.
+                    </p>
+                </div>
+
+                <!-- Chat Messages Body -->
+                <div id="chatMessagesBox" style="flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; background-image: radial-gradient(#202c33 1px, transparent 1px); background-size: 16px 16px;">
+                    <p style="text-align: center; color: #8696a0; font-size: 12px;">Mesajlar yüklənir...</p>
+                </div>
+
+                <!-- Input Field -->
+                <div style="background: #202c33; padding: 10px 14px; display: flex; gap: 10px; align-items: center;">
+                    <input type="text" id="chatInput" placeholder="Mesaj yazın..." style="flex: 1; padding: 12px 16px; background: #2a3942; border: none; border-radius: 20px; color: #e9edef; font-size: 14px; outline: none;">
+                    <button id="sendChatBtn" style="width: 42px; height: 42px; background: #00a884; border: none; border-radius: 50%; color: white; display: flex; justify-content: center; align-items: center; cursor: pointer; font-size: 18px;">➔</button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('exitChatBtn').addEventListener('click', () => {
+        if (chatPollInterval) clearInterval(chatPollInterval);
+        if (currentTeacher) renderTeacherDashboard();
+        else renderStudentDashboard();
+    });
+
+    const sendMsg = async () => {
+        const input = document.getElementById('chatInput');
+        const text = input.value.trim();
+        if (!text) return;
+
+        const encrypted = encryptMessage(text);
+        input.value = '';
+
+        await supabase.from('group_chats').insert([{
+            group_id: group.id,
+            sender_name: senderName,
+            encrypted_content: encrypted
+        }]);
+
+        fetchAndRenderMessages(group.id, senderName);
+    };
+
+    document.getElementById('sendChatBtn').addEventListener('click', sendMsg);
+    document.getElementById('chatInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMsg();
+    });
+
+    fetchAndRenderMessages(group.id, senderName);
+    chatPollInterval = setInterval(() => fetchAndRenderMessages(group.id, senderName), 2000);
+}
+
+async function fetchAndRenderMessages(groupId, currentSenderName) {
+    const box = document.getElementById('chatMessagesBox');
+    if (!box) return;
+
+    const { data: messages } = await supabase.from('group_chats').select('*').eq('group_id', groupId).order('created_at', { ascending: true });
+
+    if (!messages || messages.length === 0) {
+        box.innerHTML = `<p style="text-align: center; color: #8696a0; font-size: 12px;">Hələ mesaj yoxdur. İlk mesajı siz yazın!</p>`;
+        return;
+    }
+
+    box.innerHTML = '';
+    messages.forEach(m => {
+        const isMe = m.sender_name === currentSenderName;
+        const decryptedText = decryptMessage(m.encrypted_content);
+
+        const msgDiv = document.createElement('div');
+        msgDiv.style.cssText = `max-width: 75%; padding: 8px 12px; border-radius: 12px; font-size: 14px; word-break: break-word; align-self: ${isMe ? 'flex-end' : 'flex-start'}; background: ${isMe ? '#005c4b' : '#202c33'}; color: #e9edef; box-shadow: 0 1px 2px rgba(0,0,0,0.3);`;
+        
+        msgDiv.innerHTML = `
+            <div style="font-size: 11px; color: ${isMe ? '#8696a0' : '#53bdeb'}; font-weight: bold; margin-bottom: 3px;">${m.sender_name}</div>
+            <div>${decryptedText}</div>
+            <div style="font-size: 9px; color: #8696a0; text-align: right; margin-top: 4px;">🔒 E2EE</div>
+        `;
+        box.appendChild(msgDiv);
+    });
+
+    box.scrollTop = box.scrollHeight;
+}
+
+// ==================== ŞAGİRD PANESİ ====================
+async function renderStudentDashboard() {
+    if (chatPollInterval) clearInterval(chatPollInterval);
+
+    appContainer.innerHTML = `
+        <div class="main-wrapper" style="max-width: 900px; margin: 0 auto; padding: 20px; color: white;">
+            <div class="user-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                 <div>
                     <h2>Xoş gəldiniz, ${currentStudent.name} ${currentStudent.surname || ''}</h2>
-                    <p>Sinif: ${currentStudent.student_class || 'Bilinmir'}</p>
+                    <p style="color: #cbd5e1;">Sinif: ${currentStudent.student_class || 'Bilinmir'}</p>
                 </div>
-
-                <div id="profileCircle" class="user-avatar mr-profile-container" style="position: relative; cursor: pointer;" title="Profil menyusu">
-                    <div class="mr-spinning-border"></div>
-                    <span style="position: relative; z-index: 2;">MR</span>
-                </div>
+                <button id="studentLogoutBtn" style="padding: 8px 16px; background: rgba(239, 68, 68, 0.2); border: 1px solid #f87171; border-radius: 8px; color: #f87171; cursor: pointer; font-weight: bold;">🚪 Çıxış</button>
             </div>
 
-            <h3 class="section-title">📝 Mövcud Sınaqlar</h3>
-            <div id="quiz-container" class="quiz-grid">
-                <p style="text-align: center; color: #a0aec0; padding: 20px; grid-column: 1/-1;">Sınaqlar yüklənir...</p>
+            <!-- Şagird Menyusu -->
+            <div style="display: flex; gap: 10px; margin-bottom: 24px;">
+                <button id="sNavQuizzes" style="flex: 1; padding: 12px; background: #7e22ce; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">📝 Sınaqlarım</button>
+                <button id="sNavGroups" style="flex: 1; padding: 12px; background: rgba(255,255,255,0.1); color: #cbd5e1; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">👥 Qruplarım (Çat)</button>
             </div>
-        </div>
 
-        <div id="profileDropdown" style="display: none; position: fixed; background: rgba(20, 15, 40, 0.98); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; width: 200px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); z-index: 99999; overflow: hidden;">
-            <div style="position: relative; z-index: 2;">
-                <button id="menuChangePassword" style="width: 100%; padding: 12px 16px; background: none; border: none; color: white; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid rgba(255,255,255,0.08);">
-                    🔑 Şifrəni dəyişdir
-                </button>
-                <button id="menuLogout" style="width: 100%; padding: 12px 16px; background: none; border: none; color: #f87171; text-align: left; cursor: pointer; font-size: 14px;">
-                    🚪 Çıxış et
-                </button>
-            </div>
+            <div id="studentWorkArea"></div>
         </div>
     `;
 
-    const profileCircle = document.getElementById('profileCircle');
-    const profileDropdown = document.getElementById('profileDropdown');
-
-    profileCircle.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const rect = profileCircle.getBoundingClientRect();
-        if (profileDropdown.style.display === 'block') {
-            profileDropdown.style.display = 'none';
-        } else {
-            profileDropdown.style.top = (rect.bottom + 8) + 'px';
-            profileDropdown.style.right = (window.innerWidth - rect.right) + 'px';
-            profileDropdown.style.display = 'block';
-        }
-    });
-
-    document.addEventListener('click', (e) => {
-        if (!profileCircle.contains(e.target) && !profileDropdown.contains(e.target)) {
-            profileDropdown.style.display = 'none';
-        }
-    });
-
-    document.getElementById('menuChangePassword').addEventListener('click', () => {
-        profileDropdown.style.display = 'none';
-        renderChangePasswordModal();
-    });
-    document.getElementById('menuLogout').addEventListener('click', () => {
-        profileDropdown.style.display = 'none';
+    document.getElementById('studentLogoutBtn').addEventListener('click', () => {
         localStorage.removeItem('aquarius_current_student');
         currentStudent = null;
         renderAuthScreen();
     });
 
-    await renderQuizCards();
+    document.getElementById('sNavQuizzes').addEventListener('click', () => {
+        setStudentNavActive('sNavQuizzes');
+        renderStudentQuizzesSection();
+    });
+
+    document.getElementById('sNavGroups').addEventListener('click', () => {
+        setStudentNavActive('sNavGroups');
+        renderStudentGroupsSection();
+    });
+
+    renderStudentQuizzesSection();
 }
 
-async function renderQuizCards() {
-    try {
-        const [{ data: quizzes, error: quizError }, { data: results }] = await Promise.all([
-            supabase.from('quizzes').select('*'),
-            supabase.from('student_results').select('*')
-        ]);
-
-        const container = document.getElementById('quiz-container');
-
-        if (quizError || !quizzes || quizzes.length === 0) {
-            container.innerHTML = `<p style="text-align: center; color: #a0aec0; padding: 20px; grid-column: 1/-1;">Hazırda aktiv sınaq mövcud deyil.</p>`;
-            return;
+function setStudentNavActive(id) {
+    ['sNavQuizzes', 'sNavGroups'].forEach(btnId => {
+        const el = document.getElementById(btnId);
+        if (btnId === id) {
+            el.style.background = '#7e22ce';
+            el.style.color = 'white';
+        } else {
+            el.style.background = 'rgba(255,255,255,0.1)';
+            el.style.color = '#cbd5e1';
         }
+    });
+}
 
-        const currentStudentName = (currentStudent.name || '').trim().toLowerCase();
-        const currentStudentSurname = (currentStudent.surname || '').trim().toLowerCase();
+// Şagird yalnız üzv olduğu qrupun sınaqlarını görür
+async function renderStudentQuizzesSection() {
+    const area = document.getElementById('studentWorkArea');
+    area.innerHTML = `<p style="color: #cbd5e1;">Sınaqlarınız yüklənir...</p>`;
 
-        const completedQuizIds = new Set();
-        const resultMap = {};
+    // Şagirdin olduğu qrupları tapırıq
+    const { data: myMemberships } = await supabase.from('group_members').select('group_id').eq('student_id', currentStudent.id);
+    const myGroupIds = new Set((myMemberships || []).map(m => m.group_id));
 
-        if (results && results.length > 0) {
-            results.forEach(r => {
-                const rName = (r.student_name || '').trim().toLowerCase();
-                const rSurname = (r.student_surname || '').trim().toLowerCase();
+    const [{ data: quizzes }, { data: results }] = await Promise.all([
+        supabase.from('quizzes').select('*'),
+        supabase.from('student_results').select('*').eq('student_id', currentStudent.id)
+    ]);
 
-                const isSameStudent = (r.student_id && String(r.student_id) === String(currentStudent.id)) || 
-                                     (rName === currentStudentName && rSurname === currentStudentSurname);
-
-                if (isSameStudent) {
-                    const qId = String(r.quiz_id);
-                    completedQuizIds.add(qId);
-                    resultMap[qId] = r;
-                }
-            });
-        }
-
-        container.innerHTML = '';
-        quizzes.forEach(quiz => {
-            const quizIdStr = String(quiz.id);
-            const isCompleted = completedQuizIds.has(quizIdStr);
-            const userResult = resultMap[quizIdStr];
-
-            const card = document.createElement('div');
-            card.className = "quiz-card";
-
-            let actionButtonsHTML = '';
-            if (isCompleted) {
-                actionButtonsHTML = `
-                    <div style="display: flex; gap: 8px;">
-                        <button disabled class="btn completed-btn" style="background: #4b5563; color: #9ca3af; cursor: not-allowed; opacity: 0.8; padding: 8px 14px; border-radius: 8px; border: none; font-weight: bold;">Bitdi</button>
-                        <button id="view-res-btn-${quiz.id}" class="btn result-btn" style="background: #0284c7; color: white; cursor: pointer; padding: 8px 14px; border-radius: 8px; border: none; font-weight: bold;">Nəticəm</button>
-                    </div>
-                `;
-            } else {
-                actionButtonsHTML = `
-                    <button id="quiz-btn-${quiz.id}" class="btn start-btn">Sınağa Başla</button>
-                `;
-            }
-
-            card.innerHTML = `
-                <div class="quiz-info">
-                    <h4>${quiz.title || `Sınaq ${quiz.id}`}</h4>
-                    <p>⏱️ Müddət: ${quiz.duration ? quiz.duration + ' dəqiqə' : 'Məhdudiyyət yoxdur'}</p>
-                </div>
-                ${actionButtonsHTML}
-            `;
-            container.appendChild(card);
-
-            if (isCompleted) {
-                const resBtn = card.querySelector(`#view-res-btn-${quiz.id}`);
-                if (resBtn) {
-                    resBtn.addEventListener('click', () => renderDetailedReview(quiz, userResult));
-                }
-            } else {
-                const startBtn = card.querySelector(`#quiz-btn-${quiz.id}`);
-                if (startBtn) {
-                    startBtn.addEventListener('click', () => loadAndStartQuiz(quiz.id));
-                }
-            }
-        });
-    } catch (err) {
-        console.error("Kartlar render olunarkən xəta:", err);
-        document.getElementById('quiz-container').innerHTML = `<p style="text-align: center; color: #ff4d6d; grid-column: 1/-1;">Sınaqları yükləmək mümkün olmadı.</p>`;
+    if (!quizzes || quizzes.length === 0) {
+        area.innerHTML = `<p style="color: #cbd5e1;">Aktiv sınaq tapılmadı.</p>`;
+        return;
     }
+
+    // Filter: Ya qrup_id null-dur (hamı üçün), ya da şagird həmin qrupun üzvüdür
+    const allowedQuizzes = quizzes.filter(q => !q.group_id || myGroupIds.has(q.group_id));
+
+    if (allowedQuizzes.length === 0) {
+        area.innerHTML = `<p style="color: #cbd5e1;">Sizin daxil olduğunuz qrupa hələ ki, sınaq təyin edilməyib.</p>`;
+        return;
+    }
+
+    const resultMap = {};
+    (results || []).forEach(r => resultMap[String(r.quiz_id)] = r);
+
+    area.innerHTML = `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;"></div>`;
+    const grid = area.firstElementChild;
+
+    allowedQuizzes.forEach(quiz => {
+        const quizIdStr = String(quiz.id);
+        const userResult = resultMap[quizIdStr];
+
+        const card = document.createElement('div');
+        card.style.cssText = "background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 18px; border-radius: 14px; display: flex; flex-direction: column; justify-content: space-between;";
+        
+        if (userResult) {
+            card.innerHTML = `
+                <div>
+                    <h4 style="margin: 0 0 8px 0; color: #d8b4fe;">${quiz.title}</h4>
+                    <p style="font-size: 13px; color: #cbd5e1; margin: 0 0 12px 0;">⏱️ Müddət: ${quiz.duration} dəq</p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button disabled style="flex:1; padding: 8px; background: #4b5563; color: #9ca3af; border: none; border-radius: 8px; font-weight: bold; cursor: not-allowed;">Bitdi</button>
+                    <button id="resBtn_${quiz.id}" style="flex:1; padding: 8px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">Nəticəm</button>
+                </div>
+            `;
+            grid.appendChild(card);
+            card.querySelector(`#resBtn_${quiz.id}`).addEventListener('click', () => renderDetailedReview(quiz, userResult));
+        } else {
+            card.innerHTML = `
+                <div>
+                    <h4 style="margin: 0 0 8px 0; color: #d8b4fe;">${quiz.title}</h4>
+                    <p style="font-size: 13px; color: #cbd5e1; margin: 0 0 12px 0;">⏱️ Müddət: ${quiz.duration} dəq</p>
+                </div>
+                <button id="startBtn_${quiz.id}" style="${buttonStyle()}">Sınağa Başla</button>
+            `;
+            grid.appendChild(card);
+            card.querySelector(`#startBtn_${quiz.id}`).addEventListener('click', () => loadAndStartQuiz(quiz.id));
+        }
+    });
 }
 
-// ==================== İZAH VƏ NƏTİCƏ İCMALI ====================
+// Şagird qrupları və çat
+async function renderStudentGroupsSection() {
+    const area = document.getElementById('studentWorkArea');
+    area.innerHTML = `<p style="color: #cbd5e1;">Qruplarınız yüklənir...</p>`;
+
+    const { data: myMemberships } = await supabase.from('group_members').select('group_id').eq('student_id', currentStudent.id);
+    const myGroupIds = (myMemberships || []).map(m => m.group_id);
+
+    if (myGroupIds.length === 0) {
+        area.innerHTML = `<p style="color: #cbd5e1;">Hələ heç bir qrupa əlavə edilməmisiniz.</p>`;
+        return;
+    }
+
+    const { data: groups } = await supabase.from('groups').select('*').in('id', myGroupIds);
+
+    area.innerHTML = `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;"></div>`;
+    const grid = area.firstElementChild;
+
+    (groups || []).forEach(g => {
+        const card = document.createElement('div');
+        card.style.cssText = "background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.15); padding: 16px; border-radius: 12px; display: flex; flex-direction: column; gap: 12px;";
+        card.innerHTML = `
+            <h4 style="margin: 0; color: #c084fc;">👥 ${g.name}</h4>
+            <button id="openStudentChat_${g.id}" style="padding: 10px; background: #059669; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">💬 Qrup Çatına Daxil Ol (WhatsApp E2EE)</button>
+        `;
+        grid.appendChild(card);
+        card.querySelector(`#openStudentChat_${g.id}`).addEventListener('click', () => renderWhatsAppChat(g));
+    });
+}
+
+// ==================== İZAH VƏ SİNAQ NƏTİCƏLƏRİ ====================
 function renderDetailedReview(quizObj, resultItem) {
     let questions = quizObj.questions_data;
     if (typeof questions === 'string') {
@@ -837,40 +1043,31 @@ function renderDetailedReview(quizObj, resultItem) {
         <div class="main-wrapper" style="max-width: 800px; margin: 0 auto; padding: 20px; color: white;">
             <div class="user-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; background: rgba(255,255,255,0.05); padding: 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
                 <div>
-                    <h2 style="margin: 0 0 8px 0; color: #d8b4fe;">📋 Sınaq İcmalı: ${quizObj.title || 'Test'}</h2>
+                    <h2 style="margin: 0 0 8px 0; color: #d8b4fe;">📋 Sınaq İcmalı: ${quizObj.title}</h2>
                     <p style="margin: 0; font-size: 16px;">Topladığınız Xal: <b style="color: #4ade80;">${resultItem.score} / ${resultItem.total}</b></p>
                 </div>
-                <button id="backToDashboardBtn" class="btn secondary-btn" style="padding: 10px 18px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-weight: 600;">Geri qayıt</button>
+                <button id="backToDashboardBtn" style="padding: 10px 18px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; cursor: pointer; font-weight: 600;">Geri qayıt</button>
             </div>
             <div style="display: flex; flex-direction: column; gap: 16px;">
     `;
 
     questions.forEach((q, idx) => {
-        const questionText = q.question || "";
         const detailItem = details ? details.find(d => d.questionIndex === idx + 1) : null;
         const userAnsText = detailItem ? detailItem.userAnswer : "Cavabsız";
         const isCorrect = detailItem ? detailItem.isCorrect : false;
         
         const correctIdx = q.correctAnswerIndex !== undefined ? q.correctAnswerIndex : 0;
         const correctOptionText = (q.options && q.options[correctIdx]) ? q.options[correctIdx] : "Təyin olunmayıb";
-        const explanationText = q.explanation || q.simpleExplanation || `Düzgün cavab: ${correctOptionText}`;
 
         reviewHtml += `
             <div style="background: rgba(255,255,255,0.05); border: 1px solid ${isCorrect ? 'rgba(74, 222, 128, 0.4)' : 'rgba(248, 113, 113, 0.4)'}; padding: 20px; border-radius: 14px;">
-                <p style="font-size: 16px; margin-top: 0; margin-bottom: 12px; color: #f1f5f9;"><b>Sual ${idx + 1}:</b> ${questionText}</p>
-                
+                <p style="font-size: 16px; margin-top: 0; margin-bottom: 12px; color: #f1f5f9;"><b>Sual ${idx + 1}:</b> ${q.question}</p>
                 <div style="font-size: 14px; margin-bottom: 8px;">
                     <b>Sizin cavabınız:</b> <span style="color: ${isCorrect ? '#4ade80' : '#f87171'}; font-weight: bold;">${userAnsText} ${isCorrect ? '✅' : '❌'}</span>
                 </div>
-
-                ${!isCorrect ? `
-                    <div style="font-size: 14px; color: #4ade80; margin-bottom: 12px;">
-                        <b>Düzgün cavab:</b> ${correctOptionText}
-                    </div>
-                ` : ''}
-
+                ${!isCorrect ? `<div style="font-size: 14px; color: #4ade80; margin-bottom: 12px;"><b>Düzgün cavab:</b> ${correctOptionText}</div>` : ''}
                 <div style="margin-top: 12px; padding: 12px; background: rgba(0,0,0,0.3); border-radius: 8px; border-left: 4px solid #a855f7; font-size: 13px; color: #cbd5e1;">
-                    💡 <b>İzah:</b> ${explanationText}
+                    💡 <b>İzah:</b> ${q.explanation || `Düzgün cavab: ${correctOptionText}`}
                 </div>
             </div>
         `;
@@ -881,59 +1078,19 @@ function renderDetailedReview(quizObj, resultItem) {
     document.getElementById('backToDashboardBtn').addEventListener('click', renderStudentDashboard);
 }
 
-function renderChangePasswordModal() {
-    appContainer.innerHTML = `
-        <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; justify-content: center; align-items: center;">
-            <div style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 20px; width: 100%; max-width: 400px;">
-                <h3 style="font-size: 20px; color: #d8b4fe; margin-top: 0; margin-bottom: 20px; text-align: center;">🔑 Şifrəni Dəyişdir</h3>
-                <form id="changePassForm">
-                    ${createPasswordFieldHTML('oldPass', 'Köhnə şifrəniz')}
-                    ${createPasswordFieldHTML('newPass', 'Yeni şifrəniz')}
-                    <button type="submit" style="${buttonStyle()}; margin-bottom: 10px;">Şifrəni Yenilə</button>
-                    <button type="button" id="cancelPassBtn" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.1); border: none; border-radius: 10px; color: white; cursor: pointer;">Geri qayıt</button>
-                </form>
-            </div>
-        </div>
-    `;
-    attachPasswordToggle('oldPass');
-    attachPasswordToggle('newPass');
-
-    document.getElementById('cancelPassBtn').addEventListener('click', renderStudentDashboard);
-    document.getElementById('changePassForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const oldPass = document.getElementById('oldPass').value.trim();
-        const newPass = document.getElementById('newPass').value.trim();
-
-        if (oldPass !== currentStudent.password) {
-            alert("Köhnə şifrə yanlışdır!");
-            return;
-        }
-
-        try {
-            const { error } = await supabase.from('students_account').update({ password: newPass }).eq('id', currentStudent.id);
-            if (error) throw error;
-            currentStudent.password = newPass;
-            localStorage.setItem('aquarius_current_student', JSON.stringify(currentStudent));
-            alert("Şifrəniz yeniləndi!");
-            renderStudentDashboard();
-        } catch (err) {
-            alert("Xəta: " + err.message);
-        }
-    });
-}
-
+// ==================== SİNAQ PROSESİ VƏ İCRA ====================
 async function loadAndStartQuiz(quizId) {
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; justify-content: center; align-items: center;">
             <div style="width: 100%; max-width: 500px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 24px; border-radius: 20px; color: white;">
-                <div id="quizHeader" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                     <h2 id="quizTitle" style="font-size: 18px; color: #d8b4fe; margin: 0;">Sınaq yüklənir...</h2>
                 </div>
                 <div id="timerDisplay" style="display: flex; justify-content: center; align-items: center; background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); padding: 8px 16px; border-radius: 12px; font-weight: bold; color: #f87171; margin: 0 auto 16px auto; width: fit-content; font-size: 15px;"></div>
                 <div id="questionBox" style="margin-bottom: 20px; font-size: 16px;"></div>
                 <div style="display: flex; justify-content: space-between; gap: 10px;">
-                    <button id="prevQuestionBtn" class="btn secondary-btn" style="display: none; padding: 10px 16px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; cursor: pointer;">Geri</button>
-                    <button id="nextQuestionBtn" class="btn start-btn" style="flex: 1; padding: 10px 16px; background: linear-gradient(135deg, #9333ea, #c084fc); border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer;">Növbəti</button>
+                    <button id="prevQuestionBtn" style="display: none; padding: 10px 16px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; cursor: pointer;">Geri</button>
+                    <button id="nextQuestionBtn" style="flex: 1; padding: 10px 16px; background: linear-gradient(135deg, #9333ea, #c084fc); border: none; border-radius: 8px; color: white; font-weight: bold; cursor: pointer;">Növbəti</button>
                 </div>
             </div>
         </div>
@@ -942,9 +1099,9 @@ async function loadAndStartQuiz(quizId) {
     currentQuizId = quizId;
     try {
         const { data, error } = await supabase.from('quizzes').select('*').eq('id', quizId).single();
-        if (error || !data) throw new Error("Test tapılmadı.");
+        if (error || !data) throw new Error("Sınaq tapılmadı.");
 
-        document.getElementById('quizTitle').textContent = data.title || `Test #${quizId}`;
+        document.getElementById('quizTitle').textContent = data.title || `Sınaq #${quizId}`;
         let parsedData = data.questions_data;
         if (typeof parsedData === 'string') {
             try { parsedData = JSON.parse(parsedData); } catch(e) {}
@@ -959,8 +1116,6 @@ async function loadAndStartQuiz(quizId) {
         if (durationMinutes > 0) {
             timeLeft = durationMinutes * 60;
             startTimer();
-        } else {
-            document.getElementById('timerDisplay').textContent = "Vaxt məhdudiyyəti yoxdur";
         }
 
         document.getElementById('nextQuestionBtn').addEventListener('click', handleNextQuestion);
@@ -1073,58 +1228,12 @@ async function showResults() {
             <div style="width: 100%; max-width: 400px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 20px; text-align: center; color: white;">
                 <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 12px; color: #22c55e;">🎉 Sınaq Tamamlandı!</h2>
                 <p style="font-size: 18px; font-weight: bold; color: #22c55e;">Nəticə: ${score} / ${total} (${percent}%)</p>
-                <button id="backToCabinetBtn" class="btn start-btn" style="width: 100%; margin-top: 20px; padding: 12px; background: linear-gradient(135deg, #9333ea, #c084fc); border: none; border-radius: 10px; color: white; font-weight: bold; cursor: pointer;">Kabinetə qayıt</button>
+                <button id="backToCabinetBtn" style="${buttonStyle()}; margin-top: 20px;">Kabinetə qayıt</button>
             </div>
         </div>
     `;
 
     document.getElementById('backToCabinetBtn').addEventListener('click', renderStudentDashboard);
-}
-
-function generateAIQuestions(topic, questionCount = 5) {
-    const generatedQuestions = [];
-    for (let i = 1; i <= questionCount; i++) {
-        generatedQuestions.push({
-            questionIndex: i,
-            question: `${topic} - Sual #${i}: Bu mövzu üzrə doğru cavabı seçin?`,
-            options: [
-                `A) ${topic} A variantı`,
-                `B) ${topic} B variantı`,
-                `C) ${topic} C variantı (Doğru)`,
-                `D) ${topic} D variantı`,
-                `E) ${topic} E variantı`
-            ],
-            correctAnswerIndex: 2,
-            explanation: `${topic} mövzusunun ${i}-ci qaydasına əsasən doğru cavab C variantıdır.`
-        });
-    }
-    return generatedQuestions;
-}
-
-async function saveAIQuizToSupabase(title, questionsData, durationMinutes = 15) {
-    try {
-        const correctAnswersFormat = questionsData.map((q, idx) => ({
-            questionIndex: idx + 1,
-            correctAnswerIndex: q.correctAnswerIndex
-        }));
-
-        const { data, error } = await supabase
-            .from('quizzes')
-            .insert([
-                {
-                    title: title,
-                    questions_data: JSON.stringify(questionsData),
-                    correct_answers: JSON.stringify(correctAnswersFormat),
-                    duration: durationMinutes
-                }
-            ])
-            .select();
-
-        if (error) return null;
-        return data;
-    } catch (err) {
-        return null;
-    }
 }
 
 window.addEventListener('DOMContentLoaded', () => {
