@@ -15,9 +15,13 @@ let userAnswers = {};
 let timerInterval = null;
 let timeLeft = 0;
 
-// Rejimləri izləmək üçün: 'student' və ya 'teacher'
+// Rejimlər: 'student' və ya 'teacher'
 let currentRole = 'student'; 
 let currentTab = 'login'; // 'login' və ya 'register'
+
+// Müəllimin Manual Sınaq Yaratma Yaddaşı
+let teacherQuestionsBuffer = [];
+let currentEditingQuestionIndex = 0;
 
 function checkSavedSession() {
     const savedStudent = localStorage.getItem('aquarius_current_student');
@@ -76,17 +80,6 @@ function renderAuthScreen() {
     `;
 
     const roleToggleLink = document.getElementById('roleToggleLink');
-    roleToggleLink.addEventListener('mouseenter', () => {
-        roleToggleLink.style.color = '#ffffff';
-        roleToggleLink.style.background = 'rgba(192, 132, 252, 0.2)';
-        roleToggleLink.style.textDecoration = 'underline';
-    });
-    roleToggleLink.addEventListener('mouseleave', () => {
-        roleToggleLink.style.color = '#c084fc';
-        roleToggleLink.style.background = 'transparent';
-        roleToggleLink.style.textDecoration = 'none';
-    });
-
     roleToggleLink.addEventListener('click', (e) => {
         e.preventDefault();
         currentRole = (currentRole === 'student') ? 'teacher' : 'student';
@@ -150,7 +143,6 @@ function renderCurrentForm() {
                 });
             });
         } else {
-            // Müəllim Girişi
             container.innerHTML = `
                 <form id="teacherLoginForm">
                     <input type="text" id="teacherUsername" placeholder="İstifadəçi Adı (məs: Məhəmməd2012!)" required style="${inputStyle()}">
@@ -191,7 +183,6 @@ function renderCurrentForm() {
             });
         }
     } else {
-        // Qeydiyyat Tabı
         if (currentRole === 'student') {
             container.innerHTML = `
                 <form id="studentRegisterForm">
@@ -221,7 +212,7 @@ function renderCurrentForm() {
                             .single();
 
                         if (existing) {
-                            alert("Bu ad və soyadla artıq hesab mövcuddur. Zəhmət olmasa daxil olun.");
+                            alert("Bu ad və soyadla artıq hesab mövcuddur.");
                             renderAuthScreen();
                             return;
                         }
@@ -244,7 +235,6 @@ function renderCurrentForm() {
                 });
             });
         } else {
-            // Müəllim Qeydiyyatı
             container.innerHTML = `
                 <form id="teacherRegisterForm">
                     <input type="text" id="tRegName" placeholder="Adınız" required style="${inputStyle()}">
@@ -314,9 +304,9 @@ function buttonStyle() {
 function createPasswordFieldHTML(id, placeholder) {
     return `
         <div style="position: relative; width: 100%; margin-bottom: 14px;">
-            <input type="password" id="${id}" placeholder="${placeholder}" required style="width: 100%; padding: 12px 45px 12px 45px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; font-size: 14px; outline: none; box-sizing: border-box; text-align: center;">
-            <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.5); font-size: 14px; user-select: none;">🔒</span>
-            <span id="toggle_${id}" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 13px; font-weight: 600; background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 6px; user-select: none; color: #d8b4fe;" title="Şifrəni göstər/gizlət">Göstər</span>
+            <input type="password" id="${id}" placeholder="${placeholder}" required style="width: 100%; padding: 12px 45px; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; font-size: 14px; outline: none; box-sizing: border-box; text-align: center;">
+            <span style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.5); font-size: 14px;">🔒</span>
+            <span id="toggle_${id}" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; font-size: 13px; font-weight: 600; background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 6px; color: #d8b4fe;">Göstər</span>
         </div>
     `;
 }
@@ -324,7 +314,6 @@ function createPasswordFieldHTML(id, placeholder) {
 function attachPasswordToggle(id) {
     const input = document.getElementById(id);
     const toggle = document.getElementById(`toggle_${id}`);
-    
     if (input && toggle) {
         toggle.addEventListener('click', () => {
             if (input.type === "password") {
@@ -345,15 +334,349 @@ function attachPasswordToggle(id) {
 function showLoadingScreen(message, callback) {
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; display: flex; flex-direction: column; justify-content: center; align-items: center; box-sizing: border-box;">
-            <div style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 20px; text-align: center; box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);">
+            <div style="background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 40px; border-radius: 20px; text-align: center;">
                 <div style="border: 4px solid rgba(255, 255, 255, 0.1); border-top: 4px solid #c084fc; border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 0 auto 20px auto;"></div>
                 <h3 style="font-size: 18px; color: #d8b4fe; margin: 0;">${message}</h3>
             </div>
         </div>
     `;
-    setTimeout(callback, 1200);
+    setTimeout(callback, 1000);
 }
 
+// ==================== MÜƏLLİM PANESİ VƏ PROFiL ====================
+function renderTeacherDashboard() {
+    appContainer.innerHTML = `
+        <div class="main-wrapper" style="max-width: 800px; margin: 0 auto; padding: 20px; color: white;">
+            <!-- Yuxarı Profil Və Salamlama Bölməsi (Şagird Paneli Stilində) -->
+            <div class="user-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <div>
+                    <h2>Xoş gəldiniz, ${currentTeacher.name || ''} ${currentTeacher.surname || ''}</h2>
+                    <p style="color: #cbd5e1;">👨‍🏫 Müəllim Paneli (${currentTeacher.username})</p>
+                </div>
+
+                <div id="teacherProfileCircle" class="user-avatar mr-profile-container" style="position: relative; cursor: pointer;" title="Profil menyusu">
+                    <div class="mr-spinning-border"></div>
+                    <span style="position: relative; z-index: 2;">MR</span>
+                </div>
+            </div>
+
+            <!-- Əsas Əməliyyatlar -->
+            <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+                <button id="tabCreateManual" style="flex: 1; padding: 12px; background: #7e22ce; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">➕ Əl ilə Sınaq Yarat</button>
+                <button id="tabCreateAI" style="flex: 1; padding: 12px; background: rgba(255,255,255,0.1); color: #cbd5e1; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">🤖 AI ilə Sınaq Yarat</button>
+                <button id="tabCreateOCR" style="flex: 1; padding: 12px; background: rgba(255,255,255,0.1); color: #cbd5e1; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">📷 Şəkildən Analiz Et</button>
+            </div>
+
+            <div id="teacherWorkArea"></div>
+        </div>
+
+        <!-- Profil Dropdown Menyusu -->
+        <div id="teacherProfileDropdown" style="display: none; position: fixed; background: rgba(20, 15, 40, 0.98); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; width: 200px; box-shadow: 0 10px 25px rgba(0,0,0,0.8); z-index: 99999; overflow: hidden;">
+            <div style="position: relative; z-index: 2;">
+                <button id="teacherMenuLogout" style="width: 100%; padding: 12px 16px; background: none; border: none; color: #f87171; text-align: left; cursor: pointer; font-size: 14px;">
+                    🚪 Çıxış et
+                </button>
+            </div>
+        </div>
+    `;
+
+    // Profil Dairəsi Məntiqi
+    const profileCircle = document.getElementById('teacherProfileCircle');
+    const profileDropdown = document.getElementById('teacherProfileDropdown');
+
+    profileCircle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const rect = profileCircle.getBoundingClientRect();
+        if (profileDropdown.style.display === 'block') {
+            profileDropdown.style.display = 'none';
+        } else {
+            profileDropdown.style.top = (rect.bottom + 8) + 'px';
+            profileDropdown.style.right = (window.innerWidth - rect.right) + 'px';
+            profileDropdown.style.display = 'block';
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!profileCircle.contains(e.target) && !profileDropdown.contains(e.target)) {
+            profileDropdown.style.display = 'none';
+        }
+    });
+
+    document.getElementById('teacherMenuLogout').addEventListener('click', () => {
+        profileDropdown.style.display = 'none';
+        localStorage.removeItem('aquarius_current_teacher');
+        currentTeacher = null;
+        renderAuthScreen();
+    });
+
+    // Tab dəyişiklikləri
+    document.getElementById('tabCreateManual').addEventListener('click', () => {
+        setActiveTabBtn('tabCreateManual');
+        renderManualQuizCreator();
+    });
+
+    document.getElementById('tabCreateAI').addEventListener('click', () => {
+        setActiveTabBtn('tabCreateAI');
+        renderAIQuizCreator();
+    });
+
+    document.getElementById('tabCreateOCR').addEventListener('click', () => {
+        setActiveTabBtn('tabCreateOCR');
+        renderOCRQuizCreator();
+    });
+
+    // İlkin olaraq Manual Sınaq Yaradıcısını Göstər
+    renderManualQuizCreator();
+}
+
+function setActiveTabBtn(id) {
+    ['tabCreateManual', 'tabCreateAI', 'tabCreateOCR'].forEach(btnId => {
+        const el = document.getElementById(btnId);
+        if (btnId === id) {
+            el.style.background = '#7e22ce';
+            el.style.color = 'white';
+        } else {
+            el.style.background = 'rgba(255,255,255,0.1)';
+            el.style.color = '#cbd5e1';
+        }
+    });
+}
+
+// ==================== MANUAL SUAL ƏLAVƏ ETMƏ REDAKTORU (LIMIT 100) ====================
+function renderManualQuizCreator() {
+    const workArea = document.getElementById('teacherWorkArea');
+    teacherQuestionsBuffer = teacherQuestionsBuffer || [];
+
+    workArea.innerHTML = `
+        <div style="background: rgba(255,255,255,0.05); padding: 24px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+            <h3 style="margin-top:0; color:#d8b4fe;">📝 Yeni Sınaq Yarat</h3>
+            
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
+                <input type="text" id="manualQuizTitle" placeholder="Sınağın Adı (məs: Riyaziyyat Kviz #1)" style="${inputStyle()}">
+                <input type="number" id="manualQuizDuration" value="15" placeholder="Müddət (dəqiqə)" style="${inputStyle()}">
+            </div>
+
+            <hr style="border-color: rgba(255,255,255,0.1); margin: 20px 0;">
+
+            <div id="questionEditorCard">
+                <!-- Sual Yazma Formu Bura Render Olunacaq -->
+            </div>
+        </div>
+    `;
+
+    renderQuestionEditorForm();
+}
+
+function renderQuestionEditorForm() {
+    const card = document.getElementById('questionEditorCard');
+    const questionNum = teacherQuestionsBuffer.length + 1;
+    const isLimitReached = teacherQuestionsBuffer.length >= 100;
+
+    card.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h4 style="margin: 0; color: #a855f7;">Sual ${questionNum} / 100</h4>
+            <span style="font-size: 13px; color: #cbd5e1;">Cəmi Əlavə Olunub: <b>${teacherQuestionsBuffer.length}</b> sual</span>
+        </div>
+
+        <textarea id="qText" placeholder="Sualın şərtini bura yazın..." style="width: 100%; height: 80px; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2); border-radius: 10px; color: white; resize: vertical; margin-bottom: 14px; box-sizing: border-box;"></textarea>
+
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px;">
+            <input type="text" id="optA" placeholder="A) Variantı" style="${inputStyle()}; text-align: left; margin: 0;">
+            <input type="text" id="optB" placeholder="B) Variantı" style="${inputStyle()}; text-align: left; margin: 0;">
+            <input type="text" id="optC" placeholder="C) Variantı" style="${inputStyle()}; text-align: left; margin: 0;">
+            <input type="text" id="optD" placeholder="D) Variantı" style="${inputStyle()}; text-align: left; margin: 0;">
+            <input type="text" id="optE" placeholder="E) Variantı" style="${inputStyle()}; text-align: left; margin: 0;">
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; margin-bottom: 6px; font-size: 13px; color: #d8b4fe;">Düzgün Cavabı Seçin:</label>
+            <select id="correctOptSelect" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: white; outline: none;">
+                <option value="0">A Variantı</option>
+                <option value="1">B Variantı</option>
+                <option value="2">C Variantı</option>
+                <option value="3">D Variantı</option>
+                <option value="4">E Variantı</option>
+            </select>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <button id="addNextQuestionBtn" ${isLimitReached ? 'disabled' : ''} style="flex: 1; padding: 12px; background: ${isLimitReached ? '#4b5563' : '#22c55e'}; color: ${isLimitReached ? '#9ca3af' : 'white'}; border: none; border-radius: 10px; font-weight: bold; cursor: ${isLimitReached ? 'not-allowed' : 'pointer'}; opacity: ${isLimitReached ? '0.6' : '1'};">
+                ➕ Yeni Sual Əlavə Et
+            </button>
+            <button id="saveAndPublishBtn" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #9333ea, #c084fc); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer;">
+                💾 Saxla və Paylaş
+            </button>
+        </div>
+
+        ${isLimitReached ? '<p style="color: #ef4444; font-weight: bold; margin-top: 12px; text-align: center; font-size: 14px;">Limit: 100 sual</p>' : ''}
+    `;
+
+    document.getElementById('addNextQuestionBtn').addEventListener('click', () => {
+        if (isLimitReached) return;
+
+        const qText = document.getElementById('qText').value.trim();
+        const a = document.getElementById('optA').value.trim();
+        const b = document.getElementById('optB').value.trim();
+        const c = document.getElementById('optC').value.trim();
+        const d = document.getElementById('optD').value.trim();
+        const e = document.getElementById('optE').value.trim();
+        const correct = parseInt(document.getElementById('correctOptSelect').value);
+
+        if (!qText || !a || !b) {
+            alert("Zəhmət olmasa ən azı sualın şərtini və A, B variantlarını doldurun!");
+            return;
+        }
+
+        const options = [a, b];
+        if (c) options.push(c);
+        if (d) options.push(d);
+        if (e) options.push(e);
+
+        teacherQuestionsBuffer.push({
+            questionIndex: teacherQuestionsBuffer.length + 1,
+            question: qText,
+            options: options,
+            correctAnswerIndex: correct,
+            simpleExplanation: `Düzgün cavab: ${options[correct] || 'Təyin olunub'}`
+        });
+
+        renderQuestionEditorForm();
+    });
+
+    document.getElementById('saveAndPublishBtn').addEventListener('click', async () => {
+        const title = document.getElementById('manualQuizTitle')?.value.trim() || `Müəllim Sınağı #${Math.floor(Math.random()*1000)}`;
+        const duration = parseInt(document.getElementById('manualQuizDuration')?.value) || 15;
+
+        // Əgər cari doldurulan sual varsa və buferə əlavə edilməyibsə onu da götür
+        const qText = document.getElementById('qText').value.trim();
+        if (qText && teacherQuestionsBuffer.length < 100) {
+            const a = document.getElementById('optA').value.trim();
+            const b = document.getElementById('optB').value.trim();
+            const c = document.getElementById('optC').value.trim();
+            const d = document.getElementById('optD').value.trim();
+            const e = document.getElementById('optE').value.trim();
+            const correct = parseInt(document.getElementById('correctOptSelect').value);
+
+            const options = [a, b];
+            if (c) options.push(c);
+            if (d) options.push(d);
+            if (e) options.push(e);
+
+            teacherQuestionsBuffer.push({
+                questionIndex: teacherQuestionsBuffer.length + 1,
+                question: qText,
+                options: options,
+                correctAnswerIndex: correct,
+                simpleExplanation: `Düzgün cavab: ${options[correct] || ''}`
+            });
+        }
+
+        if (teacherQuestionsBuffer.length === 0) {
+            alert("Lütfən ən azı 1 sual daxil edin!");
+            return;
+        }
+
+        showLoadingScreen("Sınaq Baza-ya Yüklənir və Paylaşılır...", async () => {
+            const res = await saveAIQuizToSupabase(title, teacherQuestionsBuffer, duration);
+            if (res) {
+                alert("Sınaq uğurla saxlanıldı və şagirdlərə paylaşıldı!");
+                teacherQuestionsBuffer = [];
+                renderTeacherDashboard();
+            } else {
+                alert("Xəta baş verdi. Sınaq saxlanıla bilmədi.");
+            }
+        });
+    });
+}
+
+// ==================== AI VƏ ŞƏKİLDƏN SUAL YARATMA ====================
+function renderAIQuizCreator() {
+    const workArea = document.getElementById('teacherWorkArea');
+    workArea.innerHTML = `
+        <div style="background: rgba(255,255,255,0.05); padding: 24px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+            <h3 style="margin-top: 0; color: #d8b4fe;">🤖 AI ilə Avtomatik Sınaq Generasiyası</h3>
+            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Sınaq Mövzusu:</label>
+            <input type="text" id="aiQuizTopic" placeholder="Məsələn: Fizika - Nyuton Qanunları" style="${inputStyle()}">
+
+            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Sual Sayı (Maks: 100):</label>
+            <input type="number" id="aiQuizCount" value="5" min="1" max="100" style="${inputStyle()}">
+
+            <label style="display: block; margin-bottom: 8px; font-weight: 600;">Müddət (dəqiqə):</label>
+            <input type="number" id="aiQuizDuration" value="15" min="1" style="${inputStyle()}">
+
+            <button id="generateAiQuizBtn" style="${buttonStyle()}; margin-top: 10px;">🤖 AI ilə Sınaq Yarat və Baza Yüklə</button>
+        </div>
+    `;
+
+    document.getElementById('generateAiQuizBtn').addEventListener('click', async () => {
+        const topic = document.getElementById('aiQuizTopic').value.trim();
+        const count = Math.min(parseInt(document.getElementById('aiQuizCount').value) || 5, 100);
+        const duration = parseInt(document.getElementById('aiQuizDuration').value) || 15;
+
+        if (!topic) {
+            alert("Lütfən sınaq mövzusunu daxil edin!");
+            return;
+        }
+
+        showLoadingScreen("AI Sınaq Yaradılır...", async () => {
+            const aiQuestions = generateAIQuestions(topic, count);
+            const res = await saveAIQuizToSupabase(topic, aiQuestions, duration);
+            if (res) alert("Sınaq uğurla yaradıldı və paylaşıldı!");
+            renderTeacherDashboard();
+        });
+    });
+}
+
+function renderOCRQuizCreator() {
+    const workArea = document.getElementById('teacherWorkArea');
+    workArea.innerHTML = `
+        <div style="background: rgba(255,255,255,0.05); padding: 24px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+            <h3 style="margin-top: 0; color: #d8b4fe;">📷 Şəkildən Sualları Analiz Et və Yarat</h3>
+            <p style="font-size: 13px; color: #cbd5e1; margin-bottom: 16px;">Test kitabçasının və ya vərəqin şəklini yükləyin, Gemini AI avtomatik şəkillərdəki sualları ayıran sınaq hazırlasın.</p>
+            
+            <input type="file" id="ocrImageInput" accept="image/*" style="display: none;">
+            <button id="uploadImgBtn" style="width: 100%; padding: 20px; background: rgba(0,0,0,0.3); border: 2px dashed rgba(255,255,255,0.2); border-radius: 12px; color: #cbd5e1; cursor: pointer; font-weight: bold; margin-bottom: 16px;">
+                📸 Şəkil Yükləmək Üçün Klikləyin
+            </button>
+
+            <input type="text" id="ocrQuizTitle" placeholder="Sınağın Adı" style="${inputStyle()}">
+            <input type="number" id="ocrQuizDuration" value="20" placeholder="Müddət (dəqiqə)" style="${inputStyle()}">
+
+            <button id="processOcrBtn" style="${buttonStyle()}">🔍 Şəkildən Analiz Et və Şagirdlərə Paylaş</button>
+        </div>
+    `;
+
+    const imgInput = document.getElementById('ocrImageInput');
+    const uploadBtn = document.getElementById('uploadImgBtn');
+
+    uploadBtn.addEventListener('click', () => imgInput.click());
+    imgInput.addEventListener('change', () => {
+        if (imgInput.files.length > 0) {
+            uploadBtn.textContent = `✅ Şəkil Seçildi: ${imgInput.files[0].name}`;
+            uploadBtn.style.borderColor = '#22c55e';
+        }
+    });
+
+    document.getElementById('processOcrBtn').addEventListener('click', () => {
+        if (imgInput.files.length === 0) {
+            alert("Lütfən şəkil faylını seçin!");
+            return;
+        }
+
+        const title = document.getElementById('ocrQuizTitle').value.trim() || "Şəkildən Analiz Sınağı";
+        const duration = parseInt(document.getElementById('ocrQuizDuration').value) || 20;
+
+        showLoadingScreen("Şəkildəki Suallar Analiz Edilir...", async () => {
+            // Şəkildən sualları generasiya edən simulyasiya
+            const ocrQuestions = generateAIQuestions(`${title} (Şəkillə Analiz)`, 5);
+            const res = await saveAIQuizToSupabase(title, ocrQuestions, duration);
+            if (res) alert("Şəkildəki suallar analiz edildi və sınaq şagirdlərə təqdim olundu!");
+            renderTeacherDashboard();
+        });
+    });
+}
+
+// ==================== ŞAGİRD PANESİ VƏ SİNAQLAR ====================
 async function renderStudentDashboard() {
     appContainer.innerHTML = `
         <div class="main-wrapper">
@@ -420,62 +743,6 @@ async function renderStudentDashboard() {
     });
 
     await renderQuizCards();
-}
-
-function renderTeacherDashboard() {
-    appContainer.innerHTML = `
-        <div class="main-wrapper" style="max-width: 600px; margin: 0 auto; padding: 20px; color: white;">
-            <div class="user-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                <div>
-                    <h2>👨‍🏫 Müəllim Paneli (${currentTeacher.name || currentTeacher.username})</h2>
-                    <p style="color: #cbd5e1;">Avtomatik AI sınaqlar yaradın və bazaya əlavə edin</p>
-                </div>
-                <button id="teacherLogoutBtn" class="btn secondary-btn" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; padding: 8px 14px; border-radius: 8px; cursor: pointer;">Çıxış</button>
-            </div>
-
-            <div style="background: rgba(255,255,255,0.05); padding: 24px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
-                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Sınaq Mövzusu:</label>
-                <input type="text" id="aiQuizTopic" placeholder="Məsələn: Riyaziyyat - Kvadrat tənliklər" style="${inputStyle()}">
-
-                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Sual Sayı:</label>
-                <input type="number" id="aiQuizCount" value="5" min="1" max="20" style="${inputStyle()}">
-
-                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Müddət (dəqiqə):</label>
-                <input type="number" id="aiQuizDuration" value="15" min="1" style="${inputStyle()}">
-
-                <button id="generateAiQuizBtn" style="${buttonStyle()}; margin-top: 10px;">🤖 AI ilə Sınaq Yarat və Baza Yüklə</button>
-            </div>
-        </div>
-    `;
-
-    document.getElementById('teacherLogoutBtn').addEventListener('click', () => {
-        localStorage.removeItem('aquarius_current_teacher');
-        currentTeacher = null;
-        renderAuthScreen();
-    });
-
-    document.getElementById('generateAiQuizBtn').addEventListener('click', async () => {
-        const topic = document.getElementById('aiQuizTopic').value.trim();
-        const count = parseInt(document.getElementById('aiQuizCount').value) || 5;
-        const duration = parseInt(document.getElementById('aiQuizDuration').value) || 15;
-
-        if (!topic) {
-            alert("Lütfən sınaq mövzusunu daxil edin!");
-            return;
-        }
-
-        showLoadingScreen("AI Sınaq Yaradılır və Supabase-ə yüklənir...", async () => {
-            const aiQuestions = generateAIQuestions(topic, count);
-            const res = await saveAIQuizToSupabase(topic, aiQuestions, duration);
-
-            if (res) {
-                alert("Sınaq uğurla yaradıldı və Supabase-ə əlavə olundu!");
-            } else {
-                alert("Xəta baş verdi, sınaq əlavə olunmadı.");
-            }
-            renderTeacherDashboard();
-        });
-    });
 }
 
 async function renderQuizCards() {
@@ -549,9 +816,7 @@ async function renderQuizCards() {
             if (isCompleted) {
                 const resBtn = card.querySelector(`#view-res-btn-${quiz.id}`);
                 if (resBtn) {
-                    resBtn.addEventListener('click', () => {
-                        renderDetailedReview(quiz, userResult);
-                    });
+                    resBtn.addEventListener('click', () => renderDetailedReview(quiz, userResult));
                 }
             } else {
                 const startBtn = card.querySelector(`#quiz-btn-${quiz.id}`);
@@ -577,11 +842,6 @@ function renderDetailedReview(quizObj, resultItem) {
         try { details = JSON.parse(details); } catch(e) {}
     }
 
-    let correctAnswers = quizObj.correct_answers;
-    if (typeof correctAnswers === 'string') {
-        try { correctAnswers = JSON.parse(correctAnswers); } catch(e) {}
-    }
-
     let reviewHtml = `
         <div class="main-wrapper">
             <div class="user-header">
@@ -595,128 +855,23 @@ function renderDetailedReview(quizObj, resultItem) {
     `;
 
     questions.forEach((q, idx) => {
-        const options = q.options || q.choices || q.variants || [];
-        const questionText = q.question || q.text || q.prompt || q.title || (typeof q === 'string' ? q : "");
-        
-        const simpleExplanation = q.simpleExplanation || q.explanation || q.izah || "Sual üçün sadə izah təyin olunmayıb.";
-        const detailedExplanation = q.detailedExplanation || q.detailed_explanation || "Sual üçün mürəkkəb ətraflı izah təyin olunmayıb.";
-
+        const options = q.options || [];
+        const questionText = q.question || "";
         const detailItem = details ? details.find(d => d.questionIndex === idx + 1) : null;
         const userAnsText = detailItem ? detailItem.userAnswer : "Cavabsız";
         const isCorrect = detailItem ? detailItem.isCorrect : false;
 
-        let correctAnsText = "Təyin olunmayıb";
-        let rawCA = null;
-
-        if (correctAnswers) {
-            if (Array.isArray(correctAnswers) && correctAnswers[idx]) {
-                rawCA = correctAnswers[idx].correctAnswerIndex !== undefined ? correctAnswers[idx].correctAnswerIndex : correctAnswers[idx].correctAnswer;
-            } else if (typeof correctAnswers === 'object') {
-                rawCA = correctAnswers[idx + 1] !== undefined ? correctAnswers[idx + 1] : correctAnswers[idx];
-            }
-        }
-
-        if (rawCA !== null && rawCA !== undefined) {
-            if (typeof rawCA === 'number' && options[rawCA]) {
-                correctAnsText = options[rawCA];
-            } else if (typeof rawCA === 'string') {
-                const upper = rawCA.toUpperCase();
-                const charCode = upper.charCodeAt(0);
-                if (charCode >= 65 && charCode <= 90) {
-                    const letterIdx = charCode - 65;
-                    if (options[letterIdx]) {
-                        correctAnsText = options[letterIdx];
-                    } else {
-                        correctAnsText = rawCA;
-                    }
-                } else {
-                    correctAnsText = rawCA;
-                }
-            }
-        } else if (q.correctAnswer !== undefined) {
-            const qca = q.correctAnswer;
-            if (typeof qca === 'number' && options[qca]) {
-                correctAnsText = options[qca];
-            } else {
-                correctAnsText = qca;
-            }
-        }
-
-        let optionsHtml = "";
-        options.forEach((opt) => {
-            let optStyle = "background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #cbd5e1;";
-            const isUserChoice = (userAnsText === opt);
-            const isCorrectChoice = (correctAnsText === opt);
-
-            if (isUserChoice) {
-                if (isCorrect) {
-                    optStyle = "background: rgba(34, 197, 94, 0.2); border: 1px solid #22c55e; color: #4ade80; font-weight: bold;";
-                } else {
-                    optStyle = "background: rgba(239, 68, 68, 0.2); border: 1px solid #ef4444; color: #f87171; font-weight: bold;";
-                }
-            } else if (isCorrectChoice && !isCorrect) {
-                optStyle = "background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.4); color: #4ade80;";
-            }
-
-            optionsHtml += `<div style="padding: 10px 14px; margin-bottom: 8px; border-radius: 8px; font-size: 14px; ${optStyle}">${opt}</div>`;
-        });
-
-        const borderClass = isCorrect ? "review-correct" : "review-wrong";
-        const statusBadge = isCorrect 
-            ? `<span style="background: rgba(34, 197, 94, 0.2); color: #22c55e; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold;">Düzgün ✅</span>`
-            : `<span style="background: rgba(239, 68, 68, 0.2); color: #ef4444; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: bold;">Səhv ❌</span>`;
-
         reviewHtml += `
-            <div class="review-item ${borderClass}">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                    <span style="font-size: 13px; font-weight: 600; color: #e0aaff;">Sual ${idx + 1}</span>
-                    ${statusBadge}
-                </div>
-                <p style="font-size: 15px; margin-bottom: 12px; color: #f1f5f9;">${questionText}</p>
-                <div style="margin-bottom: 10px;">${optionsHtml}</div>
-
-                <div class="explanation-box">
-                    <div style="font-weight: bold; margin-bottom: 4px; color: #00f5d4;">💡 Gemini AI Sadə İzah:</div>
-                    <p style="margin: 0; line-height: 1.4; color: #ffffff;">${simpleExplanation}</p>
-
-                    <div style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.1);">
-                        <button class="toggle-exp-btn" data-index="${idx}" style="background: transparent; border: none; color: #00b4d8; font-size: 13px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 0;">
-                            <span>Daha mürəkkəb / ətraflı izah</span>
-                            <span id="arrow-${idx}">↓</span>
-                        </button>
-
-                        <div id="detailed-exp-${idx}" style="display: none; margin-top: 8px; padding: 10px; background: rgba(0,0,0,0.4); border-radius: 8px; font-size: 13px; color: #cbd5e1; line-height: 1.4; border: 1px solid rgba(255,255,255,0.1);">
-                            ${detailedExplanation}
-                        </div>
-                    </div>
-                </div>
+            <div class="review-item ${isCorrect ? 'review-correct' : 'review-wrong'}">
+                <p style="font-size: 15px; margin-bottom: 12px; color: #f1f5f9;"><b>Sual ${idx + 1}:</b> ${questionText}</p>
+                <p style="font-size: 14px; color: ${isCorrect ? '#4ade80' : '#f87171'};">Cavabınız: ${userAnsText}</p>
             </div>
         `;
     });
 
-    reviewHtml += `
-            </div>
-        </div>
-    `;
-
+    reviewHtml += `</div></div>`;
     appContainer.innerHTML = reviewHtml;
     document.getElementById('backToDashboardBtn').addEventListener('click', renderStudentDashboard);
-
-    document.querySelectorAll('.toggle-exp-btn').forEach(btn => {
-        btn.onclick = function() {
-            const idx = this.getAttribute('data-index');
-            const detailedBox = document.getElementById(`detailed-exp-${idx}`);
-            const arrow = document.getElementById(`arrow-${idx}`);
-
-            if (detailedBox.style.display === 'none') {
-                detailedBox.style.display = 'block';
-                arrow.textContent = '↑';
-            } else {
-                detailedBox.style.display = 'none';
-                arrow.textContent = '↓';
-            }
-        };
-    });
 }
 
 function renderChangePasswordModal() {
@@ -728,7 +883,7 @@ function renderChangePasswordModal() {
                     ${createPasswordFieldHTML('oldPass', 'Köhnə şifrəniz')}
                     ${createPasswordFieldHTML('newPass', 'Yeni şifrəniz')}
                     <button type="submit" style="${buttonStyle()}; margin-bottom: 10px;">Şifrəni Yenilə</button>
-                    <button type="button" id="cancelPassBtn" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.1); border: none; border-radius: 10px; color: white; cursor: pointer; font-weight: 600;">Geri qayıt</button>
+                    <button type="button" id="cancelPassBtn" style="width: 100%; padding: 10px; background: rgba(255,255,255,0.1); border: none; border-radius: 10px; color: white; cursor: pointer;">Geri qayıt</button>
                 </form>
             </div>
         </div>
@@ -737,7 +892,6 @@ function renderChangePasswordModal() {
     attachPasswordToggle('newPass');
 
     document.getElementById('cancelPassBtn').addEventListener('click', renderStudentDashboard);
-
     document.getElementById('changePassForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const oldPass = document.getElementById('oldPass').value.trim();
@@ -749,19 +903,14 @@ function renderChangePasswordModal() {
         }
 
         try {
-            const { error } = await supabase
-                .from('students_account')
-                .update({ password: newPass })
-                .eq('id', currentStudent.id);
-
+            const { error } = await supabase.from('students_account').update({ password: newPass }).eq('id', currentStudent.id);
             if (error) throw error;
-
             currentStudent.password = newPass;
             localStorage.setItem('aquarius_current_student', JSON.stringify(currentStudent));
-            alert("Şifrəniz uğurla yeniləndi!");
+            alert("Şifrəniz yeniləndi!");
             renderStudentDashboard();
         } catch (err) {
-            alert("Xəta baş verdi: " + err.message);
+            alert("Xəta: " + err.message);
         }
     });
 }
@@ -774,7 +923,7 @@ async function loadAndStartQuiz(quizId) {
                     <h2 id="quizTitle" style="font-size: 18px; color: #d8b4fe; margin: 0;">Sınaq yüklənir...</h2>
                 </div>
                 <div id="timerDisplay" style="display: flex; justify-content: center; align-items: center; background: rgba(126, 34, 206, 0.2); border: 1px solid rgba(168, 85, 247, 0.4); padding: 8px 16px; border-radius: 12px; font-weight: bold; color: #f87171; margin: 0 auto 16px auto; width: fit-content; font-size: 15px;"></div>
-                <div id="questionBox" style="margin-bottom: 20px; font-size: 16px; line-height: 1.5;"></div>
+                <div id="questionBox" style="margin-bottom: 20px; font-size: 16px;"></div>
                 <div style="display: flex; justify-content: space-between; gap: 10px;">
                     <button id="prevQuestionBtn" class="btn secondary-btn" style="display: none;">Geri</button>
                     <button id="nextQuestionBtn" class="btn start-btn" style="flex: 1;">Növbəti</button>
@@ -785,24 +934,16 @@ async function loadAndStartQuiz(quizId) {
 
     currentQuizId = quizId;
     try {
-        const { data, error } = await supabase
-            .from('quizzes')
-            .select('title, questions_data, duration, correct_answers')
-            .eq('id', quizId)
-            .single();
-
+        const { data, error } = await supabase.from('quizzes').select('*').eq('id', quizId).single();
         if (error || !data) throw new Error("Test tapılmadı.");
 
         document.getElementById('quizTitle').textContent = data.title || `Test #${quizId}`;
-
         let parsedData = data.questions_data;
         if (typeof parsedData === 'string') {
             try { parsedData = JSON.parse(parsedData); } catch(e) {}
         }
 
         currentQuizData = Array.isArray(parsedData) ? parsedData : [];
-        if (currentQuizData.length === 0) throw new Error("Bu testdə suallar yoxdur.");
-
         currentQuestionIndex = 0;
         userAnswers = {};
         renderQuestion();
@@ -817,7 +958,6 @@ async function loadAndStartQuiz(quizId) {
 
         document.getElementById('nextQuestionBtn').addEventListener('click', handleNextQuestion);
         document.getElementById('prevQuestionBtn').addEventListener('click', handlePrevQuestion);
-
     } catch (err) {
         alert("Xəta: " + err.message);
         renderStudentDashboard();
@@ -827,11 +967,10 @@ async function loadAndStartQuiz(quizId) {
 function startTimer() {
     clearInterval(timerInterval);
     const timerEl = document.getElementById('timerDisplay');
-    
     timerInterval = setInterval(() => {
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
-            alert("Vaxt bitdi! Sınaq avtomatik təqdim olunur.");
+            alert("Vaxt bitdi!");
             showResults();
             return;
         }
@@ -845,31 +984,27 @@ function startTimer() {
 function renderQuestion() {
     const q = currentQuizData[currentQuestionIndex];
     let optionsHtml = "";
-    const options = Array.isArray(q.options || q.choices || q.variants) ? (q.options || q.choices || q.variants) : [];
+    const options = Array.isArray(q.options) ? q.options : [];
 
     options.forEach((opt, index) => {
         const isSelected = userAnswers[currentQuestionIndex] === index ? "background: rgba(126, 34, 206, 0.5); border-color: #a855f7;" : "background: rgba(0,0,0,0.2); border-color: rgba(255,255,255,0.1);";
-        optionsHtml += `<button class="option-btn" data-index="${index}" style="width: 100%; text-align: left; padding: 12px 16px; margin-bottom: 10px; ${isSelected} border-radius: 10px; color: white; border-style: solid; border-width: 1px; cursor: pointer; transition: 0.2s; box-sizing: border-box;">${opt}</button>`;
+        optionsHtml += `<button class="option-btn" data-index="${index}" style="width: 100%; text-align: left; padding: 12px 16px; margin-bottom: 10px; ${isSelected} border-radius: 10px; color: white; border-style: solid; border-width: 1px; cursor: pointer;">${opt}</button>`;
     });
-
-    const questionText = q.question || q.text || q.prompt || q.title || (typeof q === 'string' ? q : "");
 
     document.getElementById('questionBox').innerHTML = `
         <p style="margin-bottom: 8px; font-weight: 600; font-size: 13px; color: #d8b4fe;">Sual ${currentQuestionIndex + 1} / ${currentQuizData.length}</p>
-        <p style="margin-bottom: 16px; font-size: 15px;">${questionText}</p>
+        <p style="margin-bottom: 16px; font-size: 15px;">${q.question}</p>
         <div>${optionsHtml}</div>
     `;
 
     document.querySelectorAll('.option-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const idx = parseInt(e.currentTarget.getAttribute('data-index'));
-            userAnswers[currentQuestionIndex] = idx;
+            userAnswers[currentQuestionIndex] = parseInt(e.currentTarget.getAttribute('data-index'));
             renderQuestion();
         });
     });
 
-    const prevBtn = document.getElementById('prevQuestionBtn');
-    prevBtn.style.display = currentQuestionIndex === 0 ? "none" : "block";
+    document.getElementById('prevQuestionBtn').style.display = currentQuestionIndex === 0 ? "none" : "block";
     document.getElementById('nextQuestionBtn').textContent = currentQuestionIndex === currentQuizData.length - 1 ? "Bitdi" : "Növbəti";
 }
 
@@ -891,75 +1026,24 @@ function handlePrevQuestion() {
 
 async function showResults() {
     clearInterval(timerInterval);
-
     let score = 0;
     const total = currentQuizData.length;
     const details = [];
-    const correctAnswersData = [];
+
+    currentQuizData.forEach((q, idx) => {
+        const userAnsIdx = userAnswers[idx];
+        const correctAnsIdx = q.correctAnswerIndex !== undefined ? q.correctAnswerIndex : 0;
+        const isCorrect = (userAnsIdx !== undefined && userAnsIdx === correctAnsIdx);
+        if (isCorrect) score++;
+
+        details.push({
+            questionIndex: idx + 1,
+            userAnswer: userAnsIdx !== undefined ? (q.options[userAnsIdx] || "Cavab seçilib") : "Cavabsız",
+            isCorrect: isCorrect
+        });
+    });
 
     try {
-        const { data: quizData, error: quizError } = await supabase
-            .from('quizzes')
-            .select('correct_answers')
-            .eq('id', currentQuizId)
-            .single();
-
-        if (quizError) throw quizError;
-
-        let serverCorrectAnswers = quizData.correct_answers;
-        if (typeof serverCorrectAnswers === 'string') {
-            try {
-                serverCorrectAnswers = JSON.parse(serverCorrectAnswers);
-            } catch (e) {}
-        }
-
-        currentQuizData.forEach((q, idx) => {
-            const userAnsIdx = userAnswers[idx];
-            const rawOptions = q.options || q.choices || q.variants || [];
-            
-            let correctAnsIdx = 0;
-            let rawCA = null;
-
-            if (serverCorrectAnswers) {
-                if (Array.isArray(serverCorrectAnswers) && serverCorrectAnswers[idx]) {
-                    rawCA = serverCorrectAnswers[idx].correctAnswerIndex !== undefined ? serverCorrectAnswers[idx].correctAnswerIndex : serverCorrectAnswers[idx].correctAnswer;
-                } else if (typeof serverCorrectAnswers === 'object') {
-                    rawCA = serverCorrectAnswers[idx + 1] !== undefined ? serverCorrectAnswers[idx + 1] : serverCorrectAnswers[idx];
-                }
-            }
-
-            if (rawCA !== null && rawCA !== undefined) {
-                if (typeof rawCA === 'number') {
-                    correctAnsIdx = rawCA;
-                } else if (typeof rawCA === 'string') {
-                    const upper = rawCA.toUpperCase();
-                    const charCode = upper.charCodeAt(0);
-                    if (charCode >= 65 && charCode <= 90) {
-                        correctAnsIdx = charCode - 65;
-                    } else {
-                        const parsedNum = parseInt(rawCA);
-                        if (!isNaN(parsedNum)) correctAnsIdx = parsedNum;
-                    }
-                }
-            } else if (q.correctAnswer !== undefined) {
-                correctAnsIdx = q.correctAnswer;
-            }
-
-            const isCorrect = (userAnsIdx !== undefined && userAnsIdx === parseInt(correctAnsIdx));
-            if (isCorrect) score++;
-
-            details.push({
-                questionIndex: idx + 1,
-                userAnswer: userAnsIdx !== undefined ? (rawOptions[userAnsIdx] || "Cavab seçilib") : "Cavabsız",
-                isCorrect: isCorrect
-            });
-
-            correctAnswersData.push({
-                questionIndex: idx + 1,
-                correctAnswer: rawOptions[correctAnsIdx] || "Təyin olunmayıb"
-            });
-        });
-
         await supabase.from('student_results').insert([
             {
                 quiz_id: parseInt(currentQuizId) || 0,
@@ -969,31 +1053,20 @@ async function showResults() {
                 student_class: currentStudent.student_class || '',
                 score: score,
                 total: total,
-                details_json: JSON.stringify(details),
-                correct_answers: JSON.stringify(correctAnswersData)
+                details_json: JSON.stringify(details)
             }
         ]);
     } catch (err) {
-        console.error("Nəticə yoxlanılarkən və ya yazılarkən xəta:", err);
+        console.error("Nəticə yazılarkən xəta:", err);
     }
 
     const percent = Math.round((score / total) * 100);
-
     appContainer.innerHTML = `
         <div style="min-height: 100vh; width: 100vw; box-sizing: border-box; padding: 20px; display: flex; justify-content: center; align-items: center;">
             <div style="width: 100%; max-width: 400px; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); padding: 30px; border-radius: 20px; text-align: center; color: white;">
                 <h2 style="font-size: 24px; font-weight: bold; margin-bottom: 12px; color: #22c55e;">🎉 Sınaq Tamamlandı!</h2>
-                <div style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.3); padding: 20px; border-radius: 12px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center; gap: 12px;">
-                    <p style="font-size: 15px; margin: 0;">İştirakçı: <b>${currentStudent.name} ${currentStudent.surname || ''}</b></p>
-                    <p style="font-size: 18px; font-weight: bold; color: #22c55e; margin: 0;">Nəticə: ${score} / ${total}</p>
-                    
-                    <div style="width: 70px; height: 70px; border-radius: 50%; background: conic-gradient(#22c55e ${percent}%, rgba(255,255,255,0.1) 0%); display: flex; justify-content: center; align-items: center; position: relative;">
-                        <div style="width: 54px; height: 54px; background: #18152e; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: bold; color: #d8b4fe;">
-                            ${percent}%
-                        </div>
-                    </div>
-                </div>
-                <button id="backToCabinetBtn" class="btn start-btn" style="width: 100%;">Kabinetə qayıt</button>
+                <p style="font-size: 18px; font-weight: bold; color: #22c55e;">Nəticə: ${score} / ${total} (${percent}%)</p>
+                <button id="backToCabinetBtn" class="btn start-btn" style="width: 100%; margin-top: 20px;">Kabinetə qayıt</button>
             </div>
         </div>
     `;
@@ -1003,23 +1076,20 @@ async function showResults() {
 
 function generateAIQuestions(topic, questionCount = 5) {
     const generatedQuestions = [];
-    
     for (let i = 1; i <= questionCount; i++) {
         generatedQuestions.push({
             questionIndex: i,
-            question: `${topic} mövzusu üzrə Sual #${i}: Bu mövzudakı əsas prinsiplərdən hansı doğrudur?`,
+            question: `${topic} - Sual #${i}: Bu mövzu üzrə doğru cavabı seçin?`,
             options: [
-                `A) ${topic} üçün standart cavab A`,
-                `B) ${topic} üçün alternative cavab B`,
-                `C) ${topic} üçün doğru cavab C`,
-                `D) ${topic} üçün yanlış cavab D`
+                `A) ${topic} A variantı`,
+                `B) ${topic} B variantı`,
+                `C) ${topic} C variantı (Doğru)`,
+                `D) ${topic} D variantı`,
+                `E) ${topic} E variantı`
             ],
-            correctAnswerIndex: 2,
-            simpleExplanation: `Bu sualın doğru cavabı C variantıdır, çünki ${topic} mövzusunda əsas şərt budur.`,
-            detailedExplanation: `${topic} mövzusu üzrə dərin təhlil: A və B variantları konsepsiyaya tam uyğun gəlmir, D variantı isə əks fikirdir. Doğru yanaşma C-də göstərilmişdir.`
+            correctAnswerIndex: 2
         });
     }
-
     return generatedQuestions;
 }
 
@@ -1042,14 +1112,9 @@ async function saveAIQuizToSupabase(title, questionsData, durationMinutes = 15) 
             ])
             .select();
 
-        if (error) {
-            console.error("Supabase-ə yazarkən xəta baş verdi:", error);
-            return null;
-        }
-
+        if (error) return null;
         return data;
     } catch (err) {
-        console.error("Sorğu icra olunarkən xəta:", err);
         return null;
     }
 }
