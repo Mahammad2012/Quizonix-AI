@@ -7,6 +7,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const appContainer = document.getElementById('appContainer') || document.body;
 
 let currentStudent = null;
+let currentTeacher = null;
 let currentQuizId = null;
 let currentQuizData = [];
 let currentQuestionIndex = 0;
@@ -15,10 +16,22 @@ let timerInterval = null;
 let timeLeft = 0;
 
 function checkSavedSession() {
-    const saved = localStorage.getItem('aquarius_current_student');
-    if (saved) {
+    const savedStudent = localStorage.getItem('aquarius_current_student');
+    const savedTeacher = localStorage.getItem('aquarius_current_teacher');
+    
+    if (savedTeacher) {
         try {
-            currentStudent = JSON.parse(saved);
+            currentTeacher = JSON.parse(savedTeacher);
+            renderTeacherDashboard();
+            return true;
+        } catch (e) {
+            localStorage.removeItem('aquarius_current_teacher');
+        }
+    }
+
+    if (savedStudent) {
+        try {
+            currentStudent = JSON.parse(savedStudent);
             renderStudentDashboard();
             return true;
         } catch (e) {
@@ -37,9 +50,10 @@ function renderAuthScreen() {
                     <p style="font-size: 14px; color: #cbd5e1;">Zəhmət olmasa hesabınıza daxil olun və ya qeydiyyatdan keçin</p>
                 </div>
 
-                <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                    <button id="showLoginTab" style="flex: 1; padding: 10px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">Giriş</button>
-                    <button id="showRegisterTab" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1; border: none; border-radius: 10px; font-weight: 600; cursor: pointer;">Qeydiyyat</button>
+                <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+                    <button id="showLoginTab" style="flex: 1; padding: 10px 4px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px;">Giriş</button>
+                    <button id="showRegisterTab" style="flex: 1; padding: 10px 4px; background: rgba(255,255,255,0.1); color: #cbd5e1; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px;">Qeydiyyat</button>
+                    <button id="showTeacherTab" style="flex: 1; padding: 10px 4px; background: rgba(255,255,255,0.1); color: #cbd5e1; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px;">👨‍🏫 Müəllim</button>
                 </div>
 
                 <div id="formContainer"></div>
@@ -47,20 +61,34 @@ function renderAuthScreen() {
         </div>
     `;
 
-    document.getElementById('showLoginTab').addEventListener('click', (e) => {
-        e.target.style.background = '#7e22ce';
-        e.target.style.color = 'white';
+    const resetTabs = () => {
+        document.getElementById('showLoginTab').style.background = 'rgba(255,255,255,0.1)';
+        document.getElementById('showLoginTab').style.color = '#cbd5e1';
         document.getElementById('showRegisterTab').style.background = 'rgba(255,255,255,0.1)';
         document.getElementById('showRegisterTab').style.color = '#cbd5e1';
+        document.getElementById('showTeacherTab').style.background = 'rgba(255,255,255,0.1)';
+        document.getElementById('showTeacherTab').style.color = '#cbd5e1';
+    };
+
+    document.getElementById('showLoginTab').addEventListener('click', (e) => {
+        resetTabs();
+        e.target.style.background = '#7e22ce';
+        e.target.style.color = 'white';
         renderLoginForm();
     });
 
     document.getElementById('showRegisterTab').addEventListener('click', (e) => {
+        resetTabs();
         e.target.style.background = '#7e22ce';
         e.target.style.color = 'white';
-        document.getElementById('showLoginTab').style.background = 'rgba(255,255,255,0.1)';
-        document.getElementById('showLoginTab').style.color = '#cbd5e1';
         renderRegisterForm();
+    });
+
+    document.getElementById('showTeacherTab').addEventListener('click', (e) => {
+        resetTabs();
+        e.target.style.background = '#7e22ce';
+        e.target.style.color = 'white';
+        renderTeacherLoginForm();
     });
 
     renderLoginForm();
@@ -216,6 +244,33 @@ function renderRegisterForm() {
     });
 }
 
+function renderTeacherLoginForm() {
+    const container = document.getElementById('formContainer');
+    container.innerHTML = `
+        <form id="teacherLoginForm">
+            <input type="text" id="teacherUsername" placeholder="Müəllim İstifadəçi Adı" required style="${inputStyle()}">
+            ${createPasswordFieldHTML('teacherPassword', 'Müəllim Şifrəsi')}
+            <button type="submit" style="${buttonStyle()}">Müəllim Panelinə Giriş</button>
+        </form>
+    `;
+    attachPasswordToggle('teacherPassword');
+
+    document.getElementById('teacherLoginForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const username = document.getElementById('teacherUsername').value.trim();
+        const password = document.getElementById('teacherPassword').value.trim();
+
+        // Müəllim girişi üçün nümunə yoxlama (ehtiyac olsa Supabase-ə bağlana bilər)
+        if (username === "admin" && password === "123456") {
+            currentTeacher = { username: "Müəllim" };
+            localStorage.setItem('aquarius_current_teacher', JSON.stringify(currentTeacher));
+            renderTeacherDashboard();
+        } else {
+            alert("Müəllim istifadəçi adı və ya şifrə yanlışdır! (Sınaq üçün: admin / 123456)");
+        }
+    });
+}
+
 async function renderStudentDashboard() {
     appContainer.innerHTML = `
         <div class="main-wrapper">
@@ -282,6 +337,62 @@ async function renderStudentDashboard() {
     });
 
     await renderQuizCards();
+}
+
+function renderTeacherDashboard() {
+    appContainer.innerHTML = `
+        <div class="main-wrapper" style="max-width: 600px; margin: 0 auto; padding: 20px; color: white;">
+            <div class="user-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                <div>
+                    <h2>👨‍🏫 Müəllim Paneli - AI Kviz Yaradan</h2>
+                    <p style="color: #cbd5e1;">Avtomatik AI sınaqlar yaradın və bazaya əlavə edin</p>
+                </div>
+                <button id="teacherLogoutBtn" class="btn secondary-btn" style="background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; padding: 8px 14px; border-radius: 8px; cursor: pointer;">Çıxış</button>
+            </div>
+
+            <div style="background: rgba(255,255,255,0.05); padding: 24px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1);">
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Sınaq Mövzusu:</label>
+                <input type="text" id="aiQuizTopic" placeholder="Məsələn: Riyaziyyat - Kvadrat tənliklər" style="${inputStyle()}">
+
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Sual Sayı:</label>
+                <input type="number" id="aiQuizCount" value="5" min="1" max="20" style="${inputStyle()}">
+
+                <label style="display: block; margin-bottom: 8px; font-weight: 600;">Müddət (dəqiqə):</label>
+                <input type="number" id="aiQuizDuration" value="15" min="1" style="${inputStyle()}">
+
+                <button id="generateAiQuizBtn" style="${buttonStyle()}; margin-top: 10px;">🤖 AI ilə Sınaq Yarat və Baza Yüklə</button>
+            </div>
+        </div>
+    `;
+
+    document.getElementById('teacherLogoutBtn').addEventListener('click', () => {
+        localStorage.removeItem('aquarius_current_teacher');
+        currentTeacher = null;
+        renderAuthScreen();
+    });
+
+    document.getElementById('generateAiQuizBtn').addEventListener('click', async () => {
+        const topic = document.getElementById('aiQuizTopic').value.trim();
+        const count = parseInt(document.getElementById('aiQuizCount').value) || 5;
+        const duration = parseInt(document.getElementById('aiQuizDuration').value) || 15;
+
+        if (!topic) {
+            alert("Lütfən sınaq mövzusunu daxil edin!");
+            return;
+        }
+
+        showLoadingScreen("AI Sınaq Yaradılır və Supabase-ə yüklənir...", async () => {
+            const aiQuestions = generateAIQuestions(topic, count);
+            const res = await saveAIQuizToSupabase(topic, aiQuestions, duration);
+
+            if (res) {
+                alert("Sınaq uğurla yaradıldı və Supabase-ə əlavə olundu!");
+            } else {
+                alert("Xəta baş verdi, sınaq əlavə olunmadı.");
+            }
+            renderTeacherDashboard();
+        });
+    });
 }
 
 async function renderQuizCards() {
@@ -808,15 +919,9 @@ async function showResults() {
 }
 
 // =========================================================================
-// AI SUAL YARADAN VƏ REDAKTƏ EDƏN NÜVƏ STRUKTUR (SUPABASE INTEGRATION)
+// AI SUAL YARADAN VƏ REDAKTƏ EDƏN MODUL (SUPABASE INTEGRATION)
 // =========================================================================
 
-/**
- * Müəyyən mövzu üzrə AI suallar yaradır və ya mövcud sualı yenidən işləyir.
- * @param {string} topic - Sınağın mövzusu
- * @param {number} questionCount - Yaradılacaq sual sayı (Standart: 5)
- * @returns {Array} Yaradılmış sual obyektləri massivi
- */
 function generateAIQuestions(topic, questionCount = 5) {
     const generatedQuestions = [];
     
@@ -830,7 +935,7 @@ function generateAIQuestions(topic, questionCount = 5) {
                 `C) ${topic} üçün doğru cavab C`,
                 `D) ${topic} üçün yanlış cavab D`
             ],
-            correctAnswerIndex: 2, // 0-based index (C bəndi)
+            correctAnswerIndex: 2,
             simpleExplanation: `Bu sualın doğru cavabı C variantıdır, çünki ${topic} mövzusunda əsas şərt budur.`,
             detailedExplanation: `${topic} mövzusu üzrə dərin təhlil: A və B variantları konsepsiyaya tam uyğun gəlmir, D variantı isə əks fikirdir. Doğru yanaşma C-də göstərilmişdir.`
         });
@@ -839,12 +944,6 @@ function generateAIQuestions(topic, questionCount = 5) {
     return generatedQuestions;
 }
 
-/**
- * AI tərəfindən yaradılmış və ya yenilənmiş sualları Supabase bazasında 'quizzes' cədvəlinə saxlayır.
- * @param {string} title - Sınaq başlığı
- * @param {Array} questionsData - Sualların siyahısı
- * @param {number} durationMinutes - Müddət (dəqiqə ilə)
- */
 async function saveAIQuizToSupabase(title, questionsData, durationMinutes = 15) {
     try {
         const correctAnswersFormat = questionsData.map((q, idx) => ({
@@ -873,61 +972,6 @@ async function saveAIQuizToSupabase(title, questionsData, durationMinutes = 15) 
     } catch (err) {
         console.error("Sorğu icra olunarkən xəta:", err);
         return null;
-    }
-}
-
-/**
- * Mövcud sınaq sualını AI vasitəsilə redaktə edib yeniləyir.
- * @param {number} quizId - Yenilənəcək sınağın ID-si
- * @param {number} targetQuestionIndex - Dəyişdiriləcək sualın indeksi (0-dan başlayan)
- * @param {Object} newQuestionObj - Yeni sual obyekti
- */
-async function editQuizQuestionWithAI(quizId, targetQuestionIndex, newQuestionObj) {
-    try {
-        const { data: quiz, error: fetchError } = await supabase
-            .from('quizzes')
-            .select('*')
-            .eq('id', quizId)
-            .single();
-
-        if (fetchError || !quiz) {
-            console.error("Sınaq tapılmadı:", fetchError);
-            return false;
-        }
-
-        let questions = typeof quiz.questions_data === 'string' 
-            ? JSON.parse(quiz.questions_data) 
-            : quiz.questions_data;
-
-        if (targetQuestionIndex >= 0 && targetQuestionIndex < questions.length) {
-            questions[targetQuestionIndex] = newQuestionObj;
-        } else {
-            console.error("Sual indeksi çərçivədən kənardır.");
-            return false;
-        }
-
-        const updatedCorrectAnswers = questions.map((q, idx) => ({
-            questionIndex: idx + 1,
-            correctAnswerIndex: q.correctAnswerIndex !== undefined ? q.correctAnswerIndex : 0
-        }));
-
-        const { error: updateError } = await supabase
-            .from('quizzes')
-            .update({
-                questions_data: JSON.stringify(questions),
-                correct_answers: JSON.stringify(updatedCorrectAnswers)
-            })
-            .eq('id', quizId);
-
-        if (updateError) {
-            console.error("Supabase güncəlləmə xətası:", updateError);
-            return false;
-        }
-
-        return true;
-    } catch (err) {
-        console.error("Redaktə prosesində xəta:", err);
-        return false;
     }
 }
 
