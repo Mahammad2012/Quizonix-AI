@@ -51,23 +51,48 @@ function renderAuthScreen() {
                 </div>
 
                 <div style="display: flex; gap: 8px; margin-bottom: 20px;">
-                    <button id="showLoginTab" style="flex: 1; padding: 10px 4px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px;">Giriş</button>
-                    <button id="showRegisterTab" style="flex: 1; padding: 10px 4px; background: rgba(255,255,255,0.1); color: #cbd5e1; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px;">Qeydiyyat</button>
-                    <button id="showTeacherTab" style="flex: 1; padding: 10px 4px; background: rgba(255,255,255,0.1); color: #cbd5e1; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 13px;">👨‍🏫 Müəllim</button>
+                    <button id="showLoginTab" style="flex: 1; padding: 10px; background: #7e22ce; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 14px; transition: 0.2s;">Giriş</button>
+                    <button id="showRegisterTab" style="flex: 1; padding: 10px; background: rgba(255,255,255,0.1); color: #cbd5e1; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 14px; transition: 0.2s;">Qeydiyyat</button>
                 </div>
 
                 <div id="formContainer"></div>
+
+                <div style="text-align: center; margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <a id="teacherLink" href="#" style="color: #c084fc; font-size: 13px; text-decoration: none; font-weight: 600; transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 8px;">
+                        <span>👨‍🏫 Müəllim kimi daxil olmaq üçün klikləyin</span>
+                    </a>
+                </div>
             </div>
         </div>
     `;
+
+    // Müəllim linki üçün hover stili
+    const teacherLink = document.getElementById('teacherLink');
+    teacherLink.addEventListener('mouseenter', () => {
+        teacherLink.style.color = '#ffffff';
+        teacherLink.style.background = 'rgba(192, 132, 252, 0.2)';
+        teacherLink.style.textDecoration = 'underline';
+    });
+    teacherLink.addEventListener('mouseleave', () => {
+        teacherLink.style.color = '#c084fc';
+        teacherLink.style.background = 'transparent';
+        teacherLink.style.textDecoration = 'none';
+    });
+
+    teacherLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('showLoginTab').style.background = 'rgba(255,255,255,0.1)';
+        document.getElementById('showLoginTab').style.color = '#cbd5e1';
+        document.getElementById('showRegisterTab').style.background = 'rgba(255,255,255,0.1)';
+        document.getElementById('showRegisterTab').style.color = '#cbd5e1';
+        renderTeacherLoginForm();
+    });
 
     const resetTabs = () => {
         document.getElementById('showLoginTab').style.background = 'rgba(255,255,255,0.1)';
         document.getElementById('showLoginTab').style.color = '#cbd5e1';
         document.getElementById('showRegisterTab').style.background = 'rgba(255,255,255,0.1)';
         document.getElementById('showRegisterTab').style.color = '#cbd5e1';
-        document.getElementById('showTeacherTab').style.background = 'rgba(255,255,255,0.1)';
-        document.getElementById('showTeacherTab').style.color = '#cbd5e1';
     };
 
     document.getElementById('showLoginTab').addEventListener('click', (e) => {
@@ -82,13 +107,6 @@ function renderAuthScreen() {
         e.target.style.background = '#7e22ce';
         e.target.style.color = 'white';
         renderRegisterForm();
-    });
-
-    document.getElementById('showTeacherTab').addEventListener('click', (e) => {
-        resetTabs();
-        e.target.style.background = '#7e22ce';
-        e.target.style.color = 'white';
-        renderTeacherLoginForm();
     });
 
     renderLoginForm();
@@ -260,7 +278,6 @@ function renderTeacherLoginForm() {
         const username = document.getElementById('teacherUsername').value.trim();
         const password = document.getElementById('teacherPassword').value.trim();
 
-        // Müəllim girişi üçün nümunə yoxlama (ehtiyac olsa Supabase-ə bağlana bilər)
         if (username === "admin" && password === "123456") {
             currentTeacher = { username: "Müəllim" };
             localStorage.setItem('aquarius_current_teacher', JSON.stringify(currentTeacher));
